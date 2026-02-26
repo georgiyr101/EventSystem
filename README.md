@@ -22,11 +22,7 @@
 | GET | `/api/v1/events` | Получить все мероприятия (без фильтра по `status`) |
 | GET | `/api/v1/events?status={name}` | Получить мероприятия с фильтром по конкретному статусу |
 
-## Примеры запросов
 
-```bash
-# Получить мероприятие с ID 1
-curl http://localhost:8080/api/v1/events/1
 
 # Получить все мероприятия со статусом "PLANNED"
 curl "http://localhost:8080/api/v1/events?status=PLANNED"
