@@ -13,3 +13,23 @@
 4. **Реализовать архитектурные слои:** Controller → Service → Repository.
 5. **Реализовать DTO и mapper** между Entity и API-ответом.
 6. **Настроить Checkstyle** и привести весь код к соответствующему стилю.
+
+## API Эндпоинты
+
+| Метод | URL | Описание |
+| :--- | :--- | :--- |
+| GET | `/api/v1/events/{id}` | Получить мероприятие по его ID |
+| GET | `/api/v1/events` | Получить все мероприятия (без фильтра по `status`) |
+| GET | `/api/v1/events?status={name}` | Получить мероприятия с фильтром по конкретному статусу |
+
+## Примеры запросов
+
+```bash
+# Получить мероприятие с ID 1
+curl http://localhost:8080/api/v1/events/1
+
+# Получить все мероприятия со статусом "PLANNED"
+curl "http://localhost:8080/api/v1/events?status=PLANNED"
+
+# Получить все мероприятия (без фильтров)
+curl http://localhost:8080/api/v1/events
