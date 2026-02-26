@@ -21,11 +21,3 @@
 | GET | `/api/v1/events/{id}` | Получить мероприятие по его ID |
 | GET | `/api/v1/events` | Получить все мероприятия (без фильтра по `status`) |
 | GET | `/api/v1/events?status={name}` | Получить мероприятия с фильтром по конкретному статусу |
-
-
-
-# Получить все мероприятия со статусом "PLANNED"
-curl "http://localhost:8080/api/v1/events?status=PLANNED"
-
-# Получить все мероприятия (без фильтров)
-curl http://localhost:8080/api/v1/events
