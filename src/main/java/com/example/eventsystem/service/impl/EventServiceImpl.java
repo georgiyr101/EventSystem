@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +42,7 @@ public class EventServiceImpl implements EventService {
     public List<EventResponseDto> getEventsByStatus(EventStatus status) {
         return eventRepository.findAllByStatus(status).stream()
                 .map(eventMapper::toResponseDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
