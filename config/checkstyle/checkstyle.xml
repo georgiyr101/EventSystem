@@ -5,7 +5,7 @@
 
 <module name="Checker">
     <property name="charset" value="UTF-8"/>
-    <property name="severity" value="warning"/>
+    <property name="severity" value="error"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
     <module name="BeforeExecutionExclusionFileFilter">
@@ -19,7 +19,7 @@
     <module name="LineLength">
         <property name="fileExtensions" value="java"/>
         <property name="max" value="120"/>
-        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|https://|https://|ftp://"/>
     </module>
 
     <module name="TreeWalker">
@@ -178,7 +178,6 @@
             <message key="ws.notPreceded" value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
         </module>
 
-        <!-- ИЗМЕНЕНО: 4 пробела вместо 2 -->
         <module name="Indentation">
             <property name="basicOffset" value="4"/>
             <property name="braceAdjustment" value="4"/>
