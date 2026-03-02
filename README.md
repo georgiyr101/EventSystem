@@ -22,3 +22,5 @@
 | GET | `/api/v1/events/{id}` | Получить мероприятие по его ID |
 | GET | `/api/v1/events` | Получить все мероприятия (без фильтра по `status`) |
 | GET | `/api/v1/events?status={name}` | Получить мероприятия с фильтром по конкретному статусу |
+| POST | `/api/v1/events` | Создать новое мероприятие |
+| PATCH | `/api/v1/events/{id}/status?newStatus={name}` | Изменить статус мероприятия |
