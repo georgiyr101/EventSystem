@@ -8,5 +8,11 @@ public interface TicketService {
 
     TicketResponseDto buyTicket(TicketRequestDto dto);
 
-    List<TicketResponseDto> getTicketsByUser(Long userId);
+    TicketResponseDto getById(Long id);
+
+    List<TicketResponseDto> getTickets(Long userId, String barcode);
+
+    TicketResponseDto update(Long id, TicketRequestDto dto);
+
+    void delete(Long id);
 }

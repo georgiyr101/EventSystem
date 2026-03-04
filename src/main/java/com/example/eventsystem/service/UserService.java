@@ -8,4 +8,10 @@ public interface UserService {
     UserResponseDto register(UserRequestDto dto);
 
     UserResponseDto getById(Long id);
+
+    UserResponseDto getByEmail(String email);
+
+    UserResponseDto update(Long id, UserRequestDto dto);
+
+    void delete(Long id);
 }

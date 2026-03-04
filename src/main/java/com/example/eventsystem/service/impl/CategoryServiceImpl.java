@@ -25,11 +25,28 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryMapper.toResponseDto(categoryRepository.save(category));
     }
 
+    @Transactional(readOnly = true)
+    public CategoryResponseDto getById(Long id) {
+        return categoryRepository.findById(id).map(categoryMapper::toResponseDto).orElseThrow();
+    }
+
+    @Transactional
+    public CategoryResponseDto update(Long id, CategoryRequestDto dto) {
+        Category category = categoryRepository.findById(id).orElseThrow();
+        category.setName(dto.getName());
+        return categoryMapper.toResponseDto(categoryRepository.save(category));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<CategoryResponseDto> getAll() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toResponseDto)
                 .toList();
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        categoryRepository.deleteById(id);
     }
 }
