@@ -47,6 +47,7 @@ public class TicketServiceImpl implements TicketService {
                 .build();
 
         Ticket savedTicket = repository.save(ticket);
+        //throw new RuntimeException("Симуляция ошибки для проверки Rollback");
 
         return mapper.toResponseDto(savedTicket);
     }
