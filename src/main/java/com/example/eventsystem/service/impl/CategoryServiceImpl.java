@@ -1,0 +1,35 @@
+package com.example.eventsystem.service.impl;
+
+import com.example.eventsystem.mapper.CategoryMapper;
+import com.example.eventsystem.model.dto.CategoryRequestDto;
+import com.example.eventsystem.model.dto.CategoryResponseDto;
+import com.example.eventsystem.model.entity.Category;
+import com.example.eventsystem.repository.CategoryRepository;
+import com.example.eventsystem.service.CategoryService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CategoryServiceImpl implements CategoryService {
+    private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
+
+    @Override
+    @Transactional
+    public CategoryResponseDto create(CategoryRequestDto dto) {
+        Category category = categoryMapper.toEntity(dto);
+        return categoryMapper.toResponseDto(categoryRepository.save(category));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDto> getAll() {
+        return categoryRepository.findAll().stream()
+                .map(categoryMapper::toResponseDto)
+                .toList();
+    }
+}
