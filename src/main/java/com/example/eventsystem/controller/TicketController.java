@@ -26,7 +26,7 @@ public class TicketController {
     private final TicketService ticketService;
 
     /**
-     * Покупка билета на мероприятие.
+     * Добавление билета на мероприятие.
      * POST /api/v1/tickets
      */
     @PostMapping

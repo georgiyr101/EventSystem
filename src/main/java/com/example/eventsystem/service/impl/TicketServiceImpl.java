@@ -10,6 +10,7 @@ import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
 import com.example.eventsystem.service.TicketService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +26,33 @@ public class TicketServiceImpl implements TicketService {
     private final UserRepository userRepo;
     private final TicketMapper mapper;
 
+    @Override
     @Transactional
     public TicketResponseDto buyTicket(TicketRequestDto dto) {
-        Event event = eventRepo.findById(dto.getEventId()).orElseThrow();
-        User user = userRepo.findById(dto.getUserId()).orElseThrow();
+        // 1. Проверяем, что ID пришли не null
+        if (dto.getEventId() == null || dto.getUserId() == null) {
+            throw new IllegalArgumentException("Event ID and User ID must not be null");
+        }
+
+        // 2. Ищем сущности (если не найдет - выкинет 404 через ExceptionHandler)
+        Event event = eventRepo.findById(dto.getEventId())
+                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + dto.getEventId()));
+
+        User user = userRepo.findById(dto.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+
+        // 3. Собираем билет БЕЗ использования маппера (напрямую через Builder для надежности)
         Ticket ticket = Ticket.builder()
-                .event(event).user(user).barcode(dto.getBarcode()).purchaseDate(LocalDateTime.now()).build();
-        return mapper.toResponseDto(repository.save(ticket));
+                .event(event)
+                .user(user)
+                .barcode(dto.getBarcode())
+                .purchaseDate(LocalDateTime.now())
+                .build();
+
+        // 4. Сохраняем
+        Ticket savedTicket = repository.save(ticket);
+
+        return mapper.toResponseDto(savedTicket);
     }
 
     @Transactional(readOnly = true)
