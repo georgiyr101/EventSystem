@@ -39,8 +39,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponseDto> getAll() {
+    public List<CategoryResponseDto> getAll(String name) {
         return categoryRepository.findAll().stream()
+                .filter(category -> name == null
+                        || category.getName().toLowerCase().contains(name.toLowerCase()))
                 .map(categoryMapper::toResponseDto)
                 .toList();
     }

@@ -8,7 +8,7 @@ public interface CategoryService {
 
     CategoryResponseDto create(CategoryRequestDto dto);
 
-    List<CategoryResponseDto> getAll();
+    List<CategoryResponseDto> getAll(String name);
 
     CategoryResponseDto getById(Long id);
 

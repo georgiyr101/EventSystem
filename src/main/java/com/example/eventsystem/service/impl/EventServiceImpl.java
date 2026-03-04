@@ -53,4 +53,29 @@ public class EventServiceImpl implements EventService {
         event.setStatus(newStatus);
         return eventMapper.toResponseDto(eventRepository.save(event));
     }
+
+    @Override
+    @Transactional
+    public EventResponseDto updateEvent(Long id, EventRequestDto requestDto) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
+
+        event.setName(requestDto.getName());
+        event.setStartDate(requestDto.getStartDate());
+        event.setEndDate(requestDto.getEndDate());
+        event.setMaxParticipants(requestDto.getMaxParticipants());
+        event.setTicketPrice(requestDto.getTicketPrice());
+
+        Event updatedEvent = eventRepository.save(event);
+        return eventMapper.toResponseDto(updatedEvent);
+    }
+
+    @Override
+    @Transactional
+    public void deleteEvent(Long id) {
+        if (!eventRepository.existsById(id)) {
+            throw new EntityNotFoundException("Cannot delete: Event not found with id: " + id);
+        }
+        eventRepository.deleteById(id);
+    }
 }
