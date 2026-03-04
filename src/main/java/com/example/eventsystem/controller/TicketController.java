@@ -43,14 +43,15 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getById(id));
     }
 
-    /**
-     * Получение списка билетов пользователя (с фильтром по штрих-коду).
-     * GET /api/v1/tickets?userId=1&barcode=ABC-123
-     */
     @GetMapping
-    public ResponseEntity<List<TicketResponseDto>> getByParams(
-            @RequestParam Long userId,
+    public ResponseEntity<List<TicketResponseDto>> getTickets(
+            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String barcode) {
+
+        if (userId == null && barcode == null) {
+            return ResponseEntity.ok(ticketService.getAllTickets());
+        }
+
         return ResponseEntity.ok(ticketService.getTickets(userId, barcode));
     }
 

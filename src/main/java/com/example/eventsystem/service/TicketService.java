@@ -15,4 +15,6 @@ public interface TicketService {
     TicketResponseDto update(Long id, TicketRequestDto dto);
 
     void delete(Long id);
+
+    List<TicketResponseDto> getAllTickets();
 }

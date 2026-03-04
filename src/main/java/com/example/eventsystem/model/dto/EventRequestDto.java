@@ -10,4 +10,5 @@ public class EventRequestDto {
     private LocalDateTime endDate;
     private Integer maxParticipants;
     private Double ticketPrice;
+    private Long organizerId;
 }

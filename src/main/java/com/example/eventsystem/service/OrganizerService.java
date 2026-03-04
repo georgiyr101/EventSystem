@@ -16,4 +16,6 @@ public interface OrganizerService {
     OrganizerResponseDto update(Long id, OrganizerRequestDto dto);
 
     void delete(Long id);
+
+    List<OrganizerResponseDto> getAllOrganizers();
 }

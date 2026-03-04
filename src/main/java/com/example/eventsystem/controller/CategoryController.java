@@ -49,7 +49,10 @@ public class CategoryController {
      */
     @GetMapping
     public ResponseEntity<List<CategoryResponseDto>> getAll(@RequestParam(required = false) String name) {
-        return ResponseEntity.ok(categoryService.getAll(name));
+        if (name != null && !name.isEmpty()) {
+            return ResponseEntity.ok(categoryService.getAll(name));
+        }
+        return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     /**

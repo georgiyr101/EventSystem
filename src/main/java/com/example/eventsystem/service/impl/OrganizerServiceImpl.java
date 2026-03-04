@@ -63,4 +63,12 @@ public class OrganizerServiceImpl implements OrganizerService {
         }
         organizerRepository.deleteById(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrganizerResponseDto> getAllOrganizers() {
+        return organizerRepository.findAll().stream()
+                .map(organizerMapper::toResponseDto)
+                .toList();
+    }
 }

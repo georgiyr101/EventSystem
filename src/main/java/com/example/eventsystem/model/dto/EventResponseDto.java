@@ -13,4 +13,6 @@ public class EventResponseDto {
     private String statusDescription;
     private String statusCode;
     private Double ticketPrice;
+    private String organizerName;
+    private java.util.List<String> categoryNames;
 }

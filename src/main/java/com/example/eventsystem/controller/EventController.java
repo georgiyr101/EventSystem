@@ -37,6 +37,15 @@ public class EventController {
     }
 
     /**
+     * Получение списка всех мероприятий.
+     * GET /api/v1/events
+     */
+    @GetMapping
+    public ResponseEntity<List<EventResponseDto>> getAll() {
+        return ResponseEntity.ok(eventService.getAllEvents());
+    }
+
+    /**
      * Получение подробной информации о мероприятии.
      * GET /api/v1/events/{id}
      */

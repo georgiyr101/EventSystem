@@ -2,6 +2,7 @@ package com.example.eventsystem.mapper;
 
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
+import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.enums.EventStatus;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,10 @@ public class EventMapper {
                 .statusCode(event.getStatus().name())
                 .statusDescription(event.getStatus().getDescription())
                 .ticketPrice(event.getTicketPrice())
+                .organizerName(event.getOrganizer().getName())
+                .categoryNames(event.getCategories().stream()
+                        .map(Category::getName)
+                        .toList())
                 .build();
     }
 }

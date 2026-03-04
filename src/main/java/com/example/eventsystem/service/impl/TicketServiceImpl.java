@@ -29,19 +29,16 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional
     public TicketResponseDto buyTicket(TicketRequestDto dto) {
-        // 1. Проверяем, что ID пришли не null
         if (dto.getEventId() == null || dto.getUserId() == null) {
             throw new IllegalArgumentException("Event ID and User ID must not be null");
         }
 
-        // 2. Ищем сущности (если не найдет - выкинет 404 через ExceptionHandler)
         Event event = eventRepo.findById(dto.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + dto.getEventId()));
 
         User user = userRepo.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
 
-        // 3. Собираем билет БЕЗ использования маппера (напрямую через Builder для надежности)
         Ticket ticket = Ticket.builder()
                 .event(event)
                 .user(user)
@@ -49,7 +46,6 @@ public class TicketServiceImpl implements TicketService {
                 .purchaseDate(LocalDateTime.now())
                 .build();
 
-        // 4. Сохраняем
         Ticket savedTicket = repository.save(ticket);
 
         return mapper.toResponseDto(savedTicket);
@@ -78,5 +74,13 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponseDto> getAllTickets() {
+        return repository.findAll().stream()
+                .map(mapper::toResponseDto)
+                .toList();
     }
 }

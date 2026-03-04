@@ -51,4 +51,12 @@ public class CategoryServiceImpl implements CategoryService {
     public void delete(Long id) {
         categoryRepository.deleteById(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDto> getAllCategories() {
+        return categoryRepository.findAll().stream()
+                .map(categoryMapper::toResponseDto)
+                .toList();
+    }
 }

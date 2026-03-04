@@ -34,6 +34,11 @@ public class OrganizerController {
         return new ResponseEntity<>(organizerService.create(requestDto), HttpStatus.CREATED);
     }
 
+    @GetMapping
+    public ResponseEntity<List<OrganizerResponseDto>> getAll() {
+        return ResponseEntity.ok(organizerService.getAllOrganizers());
+    }
+
     /**
      * Получение данных организатора по ID.
      * GET /api/v1/organizers/{id}

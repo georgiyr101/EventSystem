@@ -4,8 +4,10 @@ import com.example.eventsystem.mapper.EventMapper;
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.entity.Event;
+import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.EventRepository;
+import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,19 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
+    private final OrganizerRepository organizerRepository;
 
     @Override
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto) {
+        Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
+                .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+
         Event event = eventMapper.toEntity(requestDto);
+
+        event.setOrganizer(organizer);
+        event.setStatus(EventStatus.PLANNED);
+
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDto(savedEvent);
     }
@@ -77,5 +87,13 @@ public class EventServiceImpl implements EventService {
             throw new EntityNotFoundException("Cannot delete: Event not found with id: " + id);
         }
         eventRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EventResponseDto> getAllEvents() {
+        return eventRepository.findAll().stream()
+                .map(eventMapper::toResponseDto)
+                .toList();
     }
 }
