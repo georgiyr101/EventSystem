@@ -30,24 +30,19 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto) {
-        // 1. Находим организатора
         Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
                 .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
 
-        // 2. Мапим основные поля из DTO в Entity
         Event event = eventMapper.toEntity(requestDto);
 
-        // 3. Устанавливаем связи
         event.setOrganizer(organizer);
         event.setStatus(EventStatus.PLANNED);
 
-        // 4. ЗАГРУЖАЕМ ПОЛНЫЕ ОБЪЕКТЫ КАТЕГОРИЙ (чтобы были имена, а не null)
         if (requestDto.getCategoryIds() != null && !requestDto.getCategoryIds().isEmpty()) {
             List<Category> categories = categoryRepository.findAllById(requestDto.getCategoryIds());
             event.setCategories(new java.util.HashSet<>(categories));
         }
 
-        // 5. Сохраняем и мапим в ответ
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDto(savedEvent);
     }
