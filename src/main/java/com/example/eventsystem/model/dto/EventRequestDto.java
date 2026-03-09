@@ -11,4 +11,5 @@ public class EventRequestDto {
     private Integer maxParticipants;
     private Double ticketPrice;
     private Long organizerId;
+    private java.util.List<Long> categoryIds;
 }

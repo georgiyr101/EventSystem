@@ -3,9 +3,11 @@ package com.example.eventsystem.service.impl;
 import com.example.eventsystem.mapper.EventMapper;
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
+import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.model.enums.EventStatus;
+import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.EventService;
@@ -23,18 +25,29 @@ public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final OrganizerRepository organizerRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto) {
+        // 1. Находим организатора
         Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
                 .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
 
+        // 2. Мапим основные поля из DTO в Entity
         Event event = eventMapper.toEntity(requestDto);
 
+        // 3. Устанавливаем связи
         event.setOrganizer(organizer);
         event.setStatus(EventStatus.PLANNED);
 
+        // 4. ЗАГРУЖАЕМ ПОЛНЫЕ ОБЪЕКТЫ КАТЕГОРИЙ (чтобы были имена, а не null)
+        if (requestDto.getCategoryIds() != null && !requestDto.getCategoryIds().isEmpty()) {
+            List<Category> categories = categoryRepository.findAllById(requestDto.getCategoryIds());
+            event.setCategories(new java.util.HashSet<>(categories));
+        }
+
+        // 5. Сохраняем и мапим в ответ
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDto(savedEvent);
     }
