@@ -78,11 +78,26 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
 
+        // 1. Обновляем простые поля
         event.setName(requestDto.getName());
         event.setStartDate(requestDto.getStartDate());
         event.setEndDate(requestDto.getEndDate());
         event.setMaxParticipants(requestDto.getMaxParticipants());
         event.setTicketPrice(requestDto.getTicketPrice());
+
+        // 2. ОБНОВЛЯЕМ ОРГАНИЗАТОРА (важно, так как в PUT ты прислал id: 2)
+        if (requestDto.getOrganizerId() != null) {
+            Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+            event.setOrganizer(organizer);
+        }
+
+        // 3. ОБНОВЛЯЕМ КАТЕГОРИИ (вот чего не хватало!)
+        if (requestDto.getCategoryIds() != null) {
+            // Достаем из БД полные объекты категорий (чтобы в ответе не было null)
+            List<Category> categories = categoryRepository.findAllById(requestDto.getCategoryIds());
+            event.setCategories(new java.util.HashSet<>(categories));
+        }
 
         Event updatedEvent = eventRepository.save(event);
         return eventMapper.toResponseDto(updatedEvent);

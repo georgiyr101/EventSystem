@@ -25,28 +25,16 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    /**
-     * Создание новой категории.
-     * POST /api/v1/categories
-     */
     @PostMapping
     public ResponseEntity<CategoryResponseDto> create(@RequestBody CategoryRequestDto requestDto) {
         return new ResponseEntity<>(categoryService.create(requestDto), HttpStatus.CREATED);
     }
 
-    /**
-     * Получение категории по уникальному идентификатору.
-     * GET /api/v1/categories/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getById(id));
     }
 
-    /**
-     * Получение списка всех категорий с опциональной фильтрацией по имени.
-     * GET /api/v1/categories?name=Концерт
-     */
     @GetMapping
     public ResponseEntity<List<CategoryResponseDto>> getAll(@RequestParam(required = false) String name) {
         if (name != null && !name.isEmpty()) {
@@ -55,20 +43,12 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
-    /**
-     * Полное обновление данных категории.
-     * PUT /api/v1/categories/{id}
-     */
     @PutMapping("/{id}")
     public ResponseEntity<CategoryResponseDto> update(@PathVariable Long id,
                                                       @RequestBody CategoryRequestDto requestDto) {
         return ResponseEntity.ok(categoryService.update(id, requestDto));
     }
 
-    /**
-     * Удаление категории из системы.
-     * DELETE /api/v1/categories/{id}
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         categoryService.delete(id);
