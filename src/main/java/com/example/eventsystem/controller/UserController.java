@@ -25,10 +25,6 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * Регистрация нового пользователя в системе.
-     * POST /api/v1/users/register
-     */
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@RequestBody UserRequestDto requestDto) {
         return new ResponseEntity<>(userService.register(requestDto), HttpStatus.CREATED);
@@ -39,37 +35,21 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    /**
-     * Получение профиля пользователя по ID.
-     * GET /api/v1/users/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
-    /**
-     * Поиск пользователя по адресу электронной почты.
-     * GET /api/v1/users/find?email=test@example.com
-     */
     @GetMapping("/find")
     public ResponseEntity<UserResponseDto> getByEmail(@RequestParam String email) {
         return ResponseEntity.ok(userService.getByEmail(email));
     }
 
-    /**
-     * Обновление данных пользователя.
-     * PUT /api/v1/users/{id}
-     */
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDto> update(@PathVariable Long id, @RequestBody UserRequestDto requestDto) {
         return ResponseEntity.ok(userService.update(id, requestDto));
     }
 
-    /**
-     * Удаление аккаунта пользователя.
-     * DELETE /api/v1/users/{id}
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
