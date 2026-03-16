@@ -5,6 +5,8 @@ import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,5 +65,16 @@ public class EventController {
             @PathVariable Long id,
             @RequestParam EventStatus newStatus) {
         return ResponseEntity.ok(eventService.updateStatus(id, newStatus));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<EventResponseDto>> search(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) String organizer,
+            @RequestParam(defaultValue = "false") boolean useNative,
+            Pageable pageable) {
+
+        return ResponseEntity.ok(eventService.searchEvents(category, minPrice, organizer, pageable, useNative));
     }
 }

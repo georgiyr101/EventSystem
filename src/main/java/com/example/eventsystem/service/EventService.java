@@ -3,6 +3,8 @@ package com.example.eventsystem.service;
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.enums.EventStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -21,4 +23,8 @@ public interface EventService {
     void deleteEvent(Long id);
 
     List<EventResponseDto> getAllEvents();
+
+    Page<EventResponseDto> searchEvents(String cat, Double price, String org, Pageable pageable,
+                                               boolean useNative);
+
 }

@@ -13,6 +13,9 @@ import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -115,4 +118,26 @@ public class EventServiceImpl implements EventService {
                 .map(eventMapper::toResponseDto)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public Page<EventResponseDto> searchEvents(String cat, Double price, String org, Pageable pageable,
+                                               boolean useNative) {
+        Page<Long> idPage = useNative
+                ? eventRepository.findIdsByFilterNative(cat, price, org, pageable)
+                : eventRepository.findIdsByFilterJpql(cat, price, org, pageable);
+
+        if (idPage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Event> events = eventRepository.findAllByIdsWithDependencies(idPage.getContent());
+
+        List<EventResponseDto> dtos = events.stream()
+                .map(eventMapper::toResponseDto)
+                .toList();
+
+        return new PageImpl<>(dtos, pageable, idPage.getTotalElements());
+    }
+
+
 }
