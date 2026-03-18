@@ -24,7 +24,7 @@ public class EventSearchCacheIndex {
     }
 
     public synchronized void clear() {
-        System.out.println("--- Инвалидация индекса (кэш очищен) ---");
+        System.out.println("index invalidation");
         cache.clear();
     }
 
