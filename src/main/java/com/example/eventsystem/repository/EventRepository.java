@@ -30,7 +30,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             JOIN e.organizer o
             WHERE (CAST(:categoryName AS string) IS NULL OR c.name = :categoryName)
             AND (:minPrice IS NULL OR e.ticketPrice >= :minPrice)
-            AND (CAST(:organizerName AS string) IS NULL 
+            AND (CAST(:organizerName AS string) IS NULL
                  OR LOWER(o.name) LIKE LOWER(CONCAT('%', CAST(:organizerName AS string), '%')))
             """,
                 countQuery = """
@@ -39,7 +39,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             JOIN e.organizer o
             WHERE (CAST(:categoryName AS string) IS NULL OR c.name = :categoryName)
             AND (:minPrice IS NULL OR e.ticketPrice >= :minPrice)
-            AND (CAST(:organizerName AS string) IS NULL 
+            AND (CAST(:organizerName AS string) IS NULL
             OR LOWER(o.name) LIKE LOWER(CONCAT('%', CAST(:organizerName AS string), '%')))
             """)
     Page<Long> findIdsByFilterJpql(
@@ -48,7 +48,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("organizerName") String organizerName,
             Pageable pageable);
 
-    // Пункт 2 + 3: Native Query с фильтрацией и пагинацией (PostgreSQL)
     @Query(value = """
             SELECT DISTINCT e.id FROM events e
             JOIN event_categories ec ON e.id = ec.event_id
@@ -68,13 +67,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             AND (:organizerName IS NULL OR o.name ILIKE CONCAT('%', :organizerName, '%'))
             """,
             nativeQuery = true)
-    Page<Long> findIdsByFilterNative(
+    Page<Object[]> findIdsByFilterNative(
             @Param("categoryName") String categoryName,
             @Param("minPrice") Double minPrice,
             @Param("organizerName") String organizerName,
             Pageable pageable);
 
-    // Вспомогательный метод для загрузки полных данных (решение N+1)
     @Query("SELECT DISTINCT e FROM Event e LEFT JOIN FETCH e.organizer LEFT JOIN FETCH e.categories WHERE e.id IN :ids")
     List<Event> findAllByIdsWithDependencies(@Param("ids") List<Long> ids);
 }

@@ -69,9 +69,9 @@ public class EventController {
 
     @GetMapping("/search")
     public ResponseEntity<Page<EventResponseDto>> search(
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) String organizer,
+            @RequestParam(name = "category", required = false) String category,
+            @RequestParam(name = "minPrice", required = false) Double minPrice,
+            @RequestParam(name = "organizer", required = false) String organizer,
             @RequestParam(defaultValue = "false") boolean useNative,
             Pageable pageable) {
 

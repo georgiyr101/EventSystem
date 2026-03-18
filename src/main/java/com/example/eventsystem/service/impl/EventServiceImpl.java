@@ -10,6 +10,7 @@ import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
+import com.example.eventsystem.service.EventSearchCacheIndex;
 import com.example.eventsystem.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final OrganizerRepository organizerRepository;
     private final CategoryRepository categoryRepository;
+    private final EventSearchCacheIndex cacheIndex;
 
     @Override
     @Transactional
@@ -47,6 +49,7 @@ public class EventServiceImpl implements EventService {
         }
 
         Event savedEvent = eventRepository.save(event);
+        cacheIndex.clear();
         return eventMapper.toResponseDto(savedEvent);
     }
 
@@ -99,6 +102,7 @@ public class EventServiceImpl implements EventService {
         }
 
         Event updatedEvent = eventRepository.save(event);
+        cacheIndex.clear();
         return eventMapper.toResponseDto(updatedEvent);
     }
 
@@ -108,6 +112,7 @@ public class EventServiceImpl implements EventService {
         if (!eventRepository.existsById(id)) {
             throw new EntityNotFoundException("Cannot delete: Event not found with id: " + id);
         }
+        cacheIndex.clear();
         eventRepository.deleteById(id);
     }
 
@@ -119,11 +124,24 @@ public class EventServiceImpl implements EventService {
                 .toList();
     }
 
+
+    @Override
     @Transactional(readOnly = true)
     public Page<EventResponseDto> searchEvents(String cat, Double price, String org, Pageable pageable,
                                                boolean useNative) {
+
+        EventSearchCacheIndex.EventSearchCacheKey key = EventSearchCacheIndex.EventSearchCacheKey.of(
+                cat, price, org, pageable, useNative
+        );
+
+        Page<EventResponseDto> cachedResult = cacheIndex.get(key);
+        if (cachedResult != null) {
+            System.out.println("Cache HIT for key: " + key);
+            return cachedResult;
+        }
+        System.out.println("Cache MISS for key: " + key);
         Page<Long> idPage = useNative
-                ? eventRepository.findIdsByFilterNative(cat, price, org, pageable)
+                ? eventRepository.findIdsByFilterNative(cat, price, org, pageable).map(row -> (Long)row[0])
                 : eventRepository.findIdsByFilterJpql(cat, price, org, pageable);
 
         if (idPage.isEmpty()) {
@@ -131,13 +149,12 @@ public class EventServiceImpl implements EventService {
         }
 
         List<Event> events = eventRepository.findAllByIdsWithDependencies(idPage.getContent());
+        List<EventResponseDto> dtos = events.stream().map(eventMapper::toResponseDto).toList();
+        Page<EventResponseDto> resultPage = new PageImpl<>(dtos, pageable, idPage.getTotalElements());
 
-        List<EventResponseDto> dtos = events.stream()
-                .map(eventMapper::toResponseDto)
-                .toList();
+        cacheIndex.put(key, resultPage);
 
-        return new PageImpl<>(dtos, pageable, idPage.getTotalElements());
+        return resultPage;
     }
-
 
 }
