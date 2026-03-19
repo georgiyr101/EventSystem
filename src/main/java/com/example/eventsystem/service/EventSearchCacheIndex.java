@@ -2,6 +2,7 @@ package com.example.eventsystem.service;
 
 import com.example.eventsystem.model.dto.EventResponseDto;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Component
 public class EventSearchCacheIndex {
 
@@ -24,7 +26,7 @@ public class EventSearchCacheIndex {
     }
 
     public synchronized void clear() {
-        System.out.println("index invalidation");
+        log.info("index invalidation");
         cache.clear();
     }
 

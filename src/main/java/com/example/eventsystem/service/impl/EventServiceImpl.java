@@ -14,6 +14,7 @@ import com.example.eventsystem.service.EventSearchCacheIndex;
 import com.example.eventsystem.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
@@ -136,10 +138,10 @@ public class EventServiceImpl implements EventService {
 
         Page<EventResponseDto> cachedResult = cacheIndex.get(key);
         if (cachedResult != null) {
-            System.out.println("Cache HIT for key: " + key);
+            log.info("Cache HIT for key: {}", key);
             return cachedResult;
         }
-        System.out.println("Cache MISS for key: " + key);
+        log.info("Cache MISS for key: {}", key);
         Page<Long> idPage = useNative
                 ? eventRepository.findIdsByFilterNative(cat, price, org, pageable)
                 : eventRepository.findIdsByFilterJpql(cat, price, org, pageable);
