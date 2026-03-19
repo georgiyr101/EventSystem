@@ -67,7 +67,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             AND (:organizerName IS NULL OR o.name ILIKE CONCAT('%', :organizerName, '%'))
             """,
             nativeQuery = true)
-    Page<Object[]> findIdsByFilterNative(
+    Page<Long> findIdsByFilterNative(
             @Param("categoryName") String categoryName,
             @Param("minPrice") Double minPrice,
             @Param("organizerName") String organizerName,

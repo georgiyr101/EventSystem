@@ -141,7 +141,7 @@ public class EventServiceImpl implements EventService {
         }
         System.out.println("Cache MISS for key: " + key);
         Page<Long> idPage = useNative
-                ? eventRepository.findIdsByFilterNative(cat, price, org, pageable).map(row -> (Long)row[0])
+                ? eventRepository.findIdsByFilterNative(cat, price, org, pageable)
                 : eventRepository.findIdsByFilterJpql(cat, price, org, pageable);
 
         if (idPage.isEmpty()) {
