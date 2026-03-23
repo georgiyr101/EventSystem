@@ -12,7 +12,7 @@ import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.EventSearchCacheIndex;
 import com.example.eventsystem.service.EventService;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,7 +38,8 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto) {
         Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
-                .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Organizer not found with id: " + requestDto.getOrganizerId()));
 
         Event event = eventMapper.toEntity(requestDto);
 
@@ -60,7 +61,7 @@ public class EventServiceImpl implements EventService {
     public EventResponseDto getEventById(Long id) {
         return eventRepository.findById(id)
                 .map(eventMapper::toResponseDto)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
     }
 
     @Override
@@ -75,7 +76,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponseDto updateStatus(Long id, EventStatus newStatus) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
         event.setStatus(newStatus);
         return eventMapper.toResponseDto(eventRepository.save(event));
     }
@@ -84,7 +85,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponseDto updateEvent(Long id, EventRequestDto requestDto) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
         event.setName(requestDto.getName());
         event.setStartDate(requestDto.getStartDate());
@@ -94,7 +95,7 @@ public class EventServiceImpl implements EventService {
 
         if (requestDto.getOrganizerId() != null) {
             Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
-                    .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
             event.setOrganizer(organizer);
         }
 
@@ -112,7 +113,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public void deleteEvent(Long id) {
         if (!eventRepository.existsById(id)) {
-            throw new EntityNotFoundException("Cannot delete: Event not found with id: " + id);
+            throw new ResourceNotFoundException("Event not found with id: " + id);
         }
         cacheIndex.clear();
         eventRepository.deleteById(id);

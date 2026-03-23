@@ -7,7 +7,7 @@ import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.service.CategoryService;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +36,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public CategoryResponseDto update(Long id, CategoryRequestDto dto) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category with id " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with id " + id + " not found"));
 
         category.setName(dto.getName());
         Category savedCategory = categoryRepository.save(category);
@@ -56,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void delete(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         for (Event event : category.getEvents()) {
             event.getCategories().remove(category);

@@ -1,5 +1,6 @@
 package com.example.eventsystem.service.impl;
 
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.mapper.UserMapper;
 import com.example.eventsystem.model.dto.UserRequestDto;
 import com.example.eventsystem.model.dto.UserResponseDto;
@@ -32,7 +33,7 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto getById(Long id) {
         return userRepository.findById(id)
                 .map(userMapper::toResponseDto)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
     @Override
@@ -42,14 +43,14 @@ public class UserServiceImpl implements UserService {
                 .filter(u -> u.getEmail().equalsIgnoreCase(email))
                 .findFirst()
                 .map(userMapper::toResponseDto)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
     @Override
     @Transactional
     public UserResponseDto update(Long id, UserRequestDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());

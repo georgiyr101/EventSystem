@@ -1,5 +1,6 @@
 package com.example.eventsystem.service.impl;
 
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.mapper.TicketMapper;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
@@ -10,7 +11,7 @@ import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
 import com.example.eventsystem.service.TicketService;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +35,10 @@ public class TicketServiceImpl implements TicketService {
         }
 
         Event event = eventRepo.findById(dto.getEventId())
-                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + dto.getEventId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + dto.getEventId()));
 
         User user = userRepo.findById(dto.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
 
         Ticket ticket = Ticket.builder()
                 .event(event)
@@ -47,8 +48,6 @@ public class TicketServiceImpl implements TicketService {
                 .build();
 
         Ticket savedTicket = repository.save(ticket);
-        //throw new RuntimeException("Симуляция ошибки для проверки Rollback");
-
         return mapper.toResponseDto(savedTicket);
     }
 

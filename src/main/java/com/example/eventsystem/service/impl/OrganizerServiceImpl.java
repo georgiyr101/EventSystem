@@ -1,12 +1,13 @@
 package com.example.eventsystem.service.impl;
 
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.mapper.OrganizerMapper;
 import com.example.eventsystem.model.dto.OrganizerRequestDto;
 import com.example.eventsystem.model.dto.OrganizerResponseDto;
 import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.OrganizerService;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,7 @@ public class OrganizerServiceImpl implements OrganizerService {
     public OrganizerResponseDto getById(Long id) {
         return organizerRepository.findById(id)
                 .map(organizerMapper::toResponseDto)
-                .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
     }
 
     @Override
@@ -47,7 +48,7 @@ public class OrganizerServiceImpl implements OrganizerService {
     @Transactional
     public OrganizerResponseDto update(Long id, OrganizerRequestDto dto) {
         Organizer organizer = organizerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Organizer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
 
         organizer.setName(dto.getName());
         organizer.setContactInfo(dto.getContactInfo());
@@ -59,7 +60,7 @@ public class OrganizerServiceImpl implements OrganizerService {
     @Transactional
     public void delete(Long id) {
         if (!organizerRepository.existsById(id)) {
-            throw new EntityNotFoundException("Cannot delete: Organizer not found");
+            throw new ResourceNotFoundException("Cannot delete: Organizer not found");
         }
         organizerRepository.deleteById(id);
     }
