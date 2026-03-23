@@ -11,7 +11,6 @@ import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
 import com.example.eventsystem.service.TicketService;
-import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

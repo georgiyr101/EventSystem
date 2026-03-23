@@ -7,7 +7,6 @@ import com.example.eventsystem.model.dto.OrganizerResponseDto;
 import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.OrganizerService;
-import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

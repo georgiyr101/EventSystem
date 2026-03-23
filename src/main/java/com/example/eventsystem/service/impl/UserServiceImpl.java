@@ -7,7 +7,6 @@ import com.example.eventsystem.model.dto.UserResponseDto;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.repository.UserRepository;
 import com.example.eventsystem.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
