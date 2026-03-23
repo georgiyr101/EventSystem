@@ -1,9 +1,5 @@
 package com.example.eventsystem.exception;
 
-import com.example.eventsystem.exception.ConflictException;
-import com.example.eventsystem.exception.ErrorResponse;
-import com.example.eventsystem.exception.ResourceNotFoundException;
-import com.example.eventsystem.exception.ValidationException;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
