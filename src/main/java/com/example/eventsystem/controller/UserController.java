@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.UserRequestDto;
 import com.example.eventsystem.model.dto.UserResponseDto;
 import com.example.eventsystem.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@RequestBody UserRequestDto requestDto) {
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto requestDto) {
         return new ResponseEntity<>(userService.register(requestDto), HttpStatus.CREATED);
     }
 
@@ -46,7 +47,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDto> update(@PathVariable Long id, @RequestBody UserRequestDto requestDto) {
+    public ResponseEntity<UserResponseDto> update(@PathVariable Long id,
+                                                  @Valid @RequestBody UserRequestDto requestDto) {
         return ResponseEntity.ok(userService.update(id, requestDto));
     }
 

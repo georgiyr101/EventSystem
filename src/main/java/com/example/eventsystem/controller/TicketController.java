@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
 import com.example.eventsystem.service.TicketService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class TicketController {
     private final TicketService ticketService;
 
     @PostMapping
-    public ResponseEntity<TicketResponseDto> buy(@RequestBody TicketRequestDto requestDto) {
+    public ResponseEntity<TicketResponseDto> buy(@Valid @RequestBody TicketRequestDto requestDto) {
         return new ResponseEntity<>(ticketService.buyTicket(requestDto), HttpStatus.CREATED);
     }
 
@@ -48,7 +49,8 @@ public class TicketController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TicketResponseDto> update(@PathVariable Long id, @RequestBody TicketRequestDto requestDto) {
+    public ResponseEntity<TicketResponseDto> update(@PathVariable Long id,
+                                                    @Valid @RequestBody TicketRequestDto requestDto) {
         return ResponseEntity.ok(ticketService.update(id, requestDto));
     }
 

@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.OrganizerRequestDto;
 import com.example.eventsystem.model.dto.OrganizerResponseDto;
 import com.example.eventsystem.service.OrganizerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class OrganizerController {
     private final OrganizerService organizerService;
 
     @PostMapping
-    public ResponseEntity<OrganizerResponseDto> create(@RequestBody OrganizerRequestDto requestDto) {
+    public ResponseEntity<OrganizerResponseDto> create(@Valid @RequestBody OrganizerRequestDto requestDto) {
         return new ResponseEntity<>(organizerService.create(requestDto), HttpStatus.CREATED);
     }
 
@@ -47,7 +48,7 @@ public class OrganizerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<OrganizerResponseDto> update(@PathVariable Long id,
-                                                       @RequestBody OrganizerRequestDto requestDto) {
+                                                       @Valid @RequestBody OrganizerRequestDto requestDto) {
         return ResponseEntity.ok(organizerService.update(id, requestDto));
     }
 

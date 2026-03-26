@@ -1,6 +1,8 @@
 package com.example.eventsystem.service.impl;
 
+import com.example.eventsystem.exception.ConflictException;
 import com.example.eventsystem.exception.ResourceNotFoundException;
+import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.TicketMapper;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
@@ -30,7 +32,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     public TicketResponseDto buyTicket(TicketRequestDto dto) {
         if (dto.getEventId() == null || dto.getUserId() == null) {
-            throw new IllegalArgumentException("Event ID and User ID must not be null");
+            throw new ValidationException("Event ID and User ID must not be null");
         }
 
         Event event = eventRepo.findById(dto.getEventId())
@@ -38,6 +40,10 @@ public class TicketServiceImpl implements TicketService {
 
         User user = userRepo.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+
+        if (event.getTickets() != null && event.getTickets().size() >= event.getMaxParticipants()) {
+            throw new ConflictException("No more tickets available for this event");
+        }
 
         Ticket ticket = Ticket.builder()
                 .event(event)
@@ -52,7 +58,9 @@ public class TicketServiceImpl implements TicketService {
 
     @Transactional(readOnly = true)
     public TicketResponseDto getById(Long id) {
-        return repository.findById(id).map(mapper::toResponseDto).orElseThrow();
+        return repository.findById(id)
+                .map(mapper::toResponseDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -65,13 +73,17 @@ public class TicketServiceImpl implements TicketService {
 
     @Transactional
     public TicketResponseDto update(Long id, TicketRequestDto dto) {
-        Ticket ticket = repository.findById(id).orElseThrow();
+        Ticket ticket = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
         ticket.setBarcode(dto.getBarcode());
         return mapper.toResponseDto(repository.save(ticket));
     }
 
     @Transactional
     public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new ResourceNotFoundException("Cannot delete: Ticket not found with id: " + id);
+        }
         repository.deleteById(id);
     }
 

@@ -4,6 +4,7 @@ import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.service.EventService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +31,7 @@ public class EventController {
     private final EventService eventService;
 
     @PostMapping
-    public ResponseEntity<EventResponseDto> create(@RequestBody EventRequestDto requestDto) {
+    public ResponseEntity<EventResponseDto> create(@Valid @RequestBody EventRequestDto requestDto) {
         return new ResponseEntity<>(eventService.createEvent(requestDto), HttpStatus.CREATED);
     }
 
@@ -50,7 +51,8 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventResponseDto> update(@PathVariable Long id, @RequestBody EventRequestDto requestDto) {
+    public ResponseEntity<EventResponseDto> update(@PathVariable Long id,
+                                                   @Valid @RequestBody EventRequestDto requestDto) {
         return ResponseEntity.ok(eventService.updateEvent(id, requestDto));
     }
 

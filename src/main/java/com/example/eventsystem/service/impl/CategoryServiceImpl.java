@@ -29,7 +29,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Transactional(readOnly = true)
     public CategoryResponseDto getById(Long id) {
-        return categoryRepository.findById(id).map(categoryMapper::toResponseDto).orElseThrow();
+        return categoryRepository.findById(id)
+                .map(categoryMapper::toResponseDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Category with id " + id + " not found"));
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.CategoryRequestDto;
 import com.example.eventsystem.model.dto.CategoryResponseDto;
 import com.example.eventsystem.service.CategoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
-    public ResponseEntity<CategoryResponseDto> create(@RequestBody CategoryRequestDto requestDto) {
+    public ResponseEntity<CategoryResponseDto> create(@Valid @RequestBody CategoryRequestDto requestDto) {
         return new ResponseEntity<>(categoryService.create(requestDto), HttpStatus.CREATED);
     }
 
@@ -44,8 +45,9 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDto> update(@PathVariable Long id,
-                                                      @RequestBody CategoryRequestDto requestDto) {
+    public ResponseEntity<CategoryResponseDto> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoryRequestDto requestDto) {
         return ResponseEntity.ok(categoryService.update(id, requestDto));
     }
 

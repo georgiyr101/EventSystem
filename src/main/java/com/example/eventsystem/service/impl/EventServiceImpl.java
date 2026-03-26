@@ -1,5 +1,7 @@
 package com.example.eventsystem.service.impl;
 
+import com.example.eventsystem.exception.ConflictException;
+import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.EventMapper;
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
@@ -37,6 +39,9 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventResponseDto createEvent(EventRequestDto requestDto) {
+        if (requestDto.getEndDate().isBefore(requestDto.getStartDate())) {
+            throw new ValidationException("The end date cannot be earlier than the start date.");
+        }
         Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Organizer not found with id: " + requestDto.getOrganizerId()));
@@ -112,11 +117,15 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public void deleteEvent(Long id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Event not found with id: " + id);
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+
+        if (event.getStatus() == EventStatus.COMPLETED) {
+            throw new ConflictException("Cannot delete finished event");
         }
+
         cacheIndex.clear();
-        eventRepository.deleteById(id);
+        eventRepository.delete(event);
     }
 
     @Override
