@@ -35,6 +35,7 @@ public class EventServiceImpl implements EventService {
     private final OrganizerRepository organizerRepository;
     private final CategoryRepository categoryRepository;
     private final EventSearchCacheIndex cacheIndex;
+    private static final String EVENT_NOT_FOUND_MSG = "Event not found with id: ";
 
     @Override
     @Transactional
@@ -66,7 +67,7 @@ public class EventServiceImpl implements EventService {
     public EventResponseDto getEventById(Long id) {
         return eventRepository.findById(id)
                 .map(eventMapper::toResponseDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
     }
 
     @Override
@@ -81,7 +82,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponseDto updateStatus(Long id, EventStatus newStatus) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
         event.setStatus(newStatus);
         return eventMapper.toResponseDto(eventRepository.save(event));
     }
@@ -90,7 +91,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponseDto updateEvent(Long id, EventRequestDto requestDto) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
 
         event.setName(requestDto.getName());
         event.setStartDate(requestDto.getStartDate());
@@ -100,7 +101,7 @@ public class EventServiceImpl implements EventService {
 
         if (requestDto.getOrganizerId() != null) {
             Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+                    .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
             event.setOrganizer(organizer);
         }
 
@@ -118,7 +119,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public void deleteEvent(Long id) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
 
         if (event.getStatus() == EventStatus.COMPLETED) {
             throw new ConflictException("Cannot delete finished event");
