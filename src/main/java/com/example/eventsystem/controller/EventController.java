@@ -4,6 +4,10 @@ import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.service.EventService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,42 +30,63 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/events")
 @RequiredArgsConstructor
+@Tag(name = "Event Controller", description = "Управление мероприятиями и их статусами")
 public class EventController {
 
     private final EventService eventService;
 
+    @Operation(summary = "Создать новое мероприятие")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Мероприятие создано"),
+            @ApiResponse(responseCode = "400", description = "Ошибка валидации данных")
+    })
     @PostMapping
     public ResponseEntity<EventResponseDto> create(@Valid @RequestBody EventRequestDto requestDto) {
         return new ResponseEntity<>(eventService.createEvent(requestDto), HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Получить список всех мероприятий")
     @GetMapping
     public ResponseEntity<List<EventResponseDto>> getAll() {
         return ResponseEntity.ok(eventService.getAllEvents());
     }
 
+    @Operation(summary = "Получить мероприятие по ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешный возврат данных"),
+            @ApiResponse(responseCode = "404", description = "Мероприятие не найдено")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<EventResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(eventService.getEventById(id));
     }
 
+    @Operation(summary = "Фильтрация по статусу", description = "Возвращает список событий с указанным статусом")
     @GetMapping("/filter")
     public ResponseEntity<List<EventResponseDto>> filterByStatus(@RequestParam EventStatus status) {
         return ResponseEntity.ok(eventService.getEventsByStatus(status));
     }
 
+    @Operation(summary = "Полное обновление мероприятия")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Данные обновлены"),
+            @ApiResponse(responseCode = "404", description = "Мероприятие для обновления не найдено")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<EventResponseDto> update(@PathVariable Long id,
                                                    @Valid @RequestBody EventRequestDto requestDto) {
         return ResponseEntity.ok(eventService.updateEvent(id, requestDto));
     }
 
+    @Operation(summary = "Удалить мероприятие")
+    @ApiResponse(responseCode = "204", description = "Мероприятие удалено")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Частичное обновление: изменить статус")
     @PatchMapping("/{id}/status")
     public ResponseEntity<EventResponseDto> changeStatus(
             @PathVariable Long id,
@@ -69,6 +94,8 @@ public class EventController {
         return ResponseEntity.ok(eventService.updateStatus(id, newStatus));
     }
 
+    @Operation(summary = "Расширенный поиск с пагинацией",
+            description = "Поиск по категории, минимальной цене и организатору")
     @GetMapping("/search")
     public ResponseEntity<Page<EventResponseDto>> search(
             @RequestParam(name = "category", required = false) String category,
