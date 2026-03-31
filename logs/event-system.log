@@ -1,22 +1,22 @@
-2026-03-30 19:45:58.063 [main] INFO  c.e.e.EventSystemApplication - Starting EventSystemApplication using Java 21.0.10 with PID 21804 (C:\Users\Admin\IdeaProjects\event-system\target\classes started by Admin in C:\Users\Admin\IdeaProjects\event-system)
-2026-03-30 19:45:58.070 [main] DEBUG c.e.e.EventSystemApplication - Running with Spring Boot v4.0.2, Spring v7.0.3
-2026-03-30 19:45:58.070 [main] INFO  c.e.e.EventSystemApplication - No active profile set, falling back to 1 default profile: "default"
-2026-03-30 19:45:58.564 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
-2026-03-30 19:45:59.590 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-30 19:45:59.678 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 75 ms. Found 5 JPA repository interfaces.
-2026-03-30 19:46:00.476 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
-2026-03-30 19:46:00.490 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
-2026-03-30 19:46:00.494 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
-2026-03-30 19:46:00.494 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.15]
-2026-03-30 19:46:00.565 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 2438 ms
-2026-03-30 19:46:00.766 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-03-30 19:46:00.850 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.1.Final
-2026-03-30 19:46:01.406 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-30 19:46:01.447 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
-2026-03-30 19:46:02.724 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@61288814
-2026-03-30 19:46:02.725 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
-2026-03-30 19:46:02.800 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-30 19:46:02.839 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
+2026-03-31 14:30:17.402 [main] INFO  c.e.e.EventSystemApplication - Starting EventSystemApplication using Java 21.0.10 with PID 10288 (C:\Users\Admin\IdeaProjects\event-system\target\classes started by Admin in C:\Users\Admin\IdeaProjects\event-system)
+2026-03-31 14:30:17.407 [main] DEBUG c.e.e.EventSystemApplication - Running with Spring Boot v4.0.2, Spring v7.0.3
+2026-03-31 14:30:17.407 [main] INFO  c.e.e.EventSystemApplication - No active profile set, falling back to 1 default profile: "default"
+2026-03-31 14:30:17.895 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-03-31 14:30:19.004 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-31 14:30:19.090 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 71 ms. Found 5 JPA repository interfaces.
+2026-03-31 14:30:19.961 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-03-31 14:30:19.977 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-03-31 14:30:19.977 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-03-31 14:30:19.977 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.15]
+2026-03-31 14:30:20.041 [main] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 2578 ms
+2026-03-31 14:30:20.263 [main] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-31 14:30:20.343 [main] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.1.Final
+2026-03-31 14:30:20.931 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-31 14:30:20.978 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-03-31 14:30:22.089 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@7f41d979
+2026-03-31 14:30:22.089 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-03-31 14:30:22.153 [main] WARN  org.hibernate.orm.deprecation - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-31 14:30:22.184 [main] INFO  o.hibernate.orm.connections.pooling - HHH10001005: Database info:
 	Database JDBC URL [jdbc:postgresql://localhost:5432/event_system]
 	Database driver: PostgreSQL JDBC Driver
 	Database dialect: PostgreSQLDialect
@@ -28,18 +28,17 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-03-30 19:46:04.148 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-30 19:46:04.390 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-30 19:46:04.541 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-30 19:46:06.304 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-30 19:46:06.791 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
-2026-03-30 19:46:06.807 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
-2026-03-30 19:46:06.813 [main] INFO  c.e.e.EventSystemApplication - Started EventSystemApplication in 9.552 seconds (process running for 10.956)
-2026-03-30 19:46:17.627 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-30 19:46:17.627 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-03-30 19:46:17.628 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
-2026-03-30 19:46:18.750 [http-nio-8080-exec-6] INFO  o.s.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 519 ms
-2026-03-30 19:47:05.329 [http-nio-8080-exec-9] DEBUG org.hibernate.SQL - 
+2026-03-31 14:30:23.399 [main] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-31 14:30:23.610 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-31 14:30:23.817 [main] INFO  o.s.d.j.r.q.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-31 14:30:25.737 [main] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-31 14:30:26.367 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-03-31 14:30:26.399 [main] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-03-31 14:30:26.399 [main] INFO  c.e.e.EventSystemApplication - Started EventSystemApplication in 9.611 seconds (process running for 10.162)
+2026-03-31 14:30:46.787 [http-nio-8080-exec-4] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-31 14:30:46.787 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-03-31 14:30:46.795 [http-nio-8080-exec-4] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 8 ms
+2026-03-31 14:30:47.357 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
     select
         o1_0.id,
         o1_0.contact_info,
@@ -48,28 +47,12 @@
         organizers o1_0 
     where
         o1_0.id=?
-2026-03-30 19:47:05.356 [http-nio-8080-exec-9] INFO  c.e.eventsystem.aspect.LoggingAspect - Method OrganizerServiceImpl.getById(..) executed in 57 ms
-2026-03-30 19:47:05.362 [http-nio-8080-exec-9] WARN  c.e.e.e.GlobalExceptionHandler - CLIENT ERROR at /api/v1/organizers/5: 404 - Organizer not found
-2026-03-30 19:47:36.159 [http-nio-8080-exec-4] DEBUG org.hibernate.SQL - 
-    select
-        o1_0.id,
-        o1_0.contact_info,
-        o1_0.name 
-    from
-        organizers o1_0
-2026-03-30 19:47:36.175 [http-nio-8080-exec-4] INFO  c.e.eventsystem.aspect.LoggingAspect - Method OrganizerServiceImpl.getAllOrganizers() executed in 69 ms
-2026-03-30 19:47:46.481 [http-nio-8080-exec-5] DEBUG org.hibernate.SQL - 
-    select
-        o1_0.id,
-        o1_0.contact_info,
-        o1_0.name 
-    from
-        organizers o1_0 
-    where
-        o1_0.id=?
-2026-03-30 19:47:46.482 [http-nio-8080-exec-5] INFO  c.e.eventsystem.aspect.LoggingAspect - Method OrganizerServiceImpl.getById(..) executed in 3 ms
-2026-03-30 19:47:54.850 [SpringApplicationShutdownHook] INFO  o.s.boot.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
-2026-03-30 19:47:54.863 [tomcat-shutdown] INFO  o.s.boot.tomcat.GracefulShutdown - Graceful shutdown complete
-2026-03-30 19:47:54.867 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-03-30 19:47:54.869 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-03-30 19:47:54.872 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-03-31 14:30:47.422 [http-nio-8080-exec-4] INFO  c.e.eventsystem.aspect.LoggingAspect - Method OrganizerServiceImpl.getById(..) executed in 130 ms
+2026-03-31 14:30:47.438 [http-nio-8080-exec-4] WARN  c.e.e.e.GlobalExceptionHandler - CLIENT ERROR at /api/v1/organizers/5: 404 - Organizer not found
+2026-03-31 14:31:07.607 [http-nio-8080-exec-2] WARN  c.e.e.e.GlobalExceptionHandler - CLIENT ERROR at /api/v1/organizers: 400 - Invalid input data
+2026-03-31 14:31:17.235 [http-nio-8080-exec-1] INFO  o.s.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 545 ms
+2026-03-31 14:32:04.378 [SpringApplicationShutdownHook] INFO  o.s.boot.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-03-31 14:32:04.387 [tomcat-shutdown] INFO  o.s.boot.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-03-31 14:32:04.387 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-31 14:32:04.402 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-03-31 14:32:04.402 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

@@ -2,18 +2,24 @@ package com.example.eventsystem.exception;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +37,46 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.groupingBy(
                         FieldError::getField,
                         Collectors.mapping(FieldError::getDefaultMessage, Collectors.toList())
+                ));
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST, "Validation failed", "Invalid input data", request, details, ex);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleHandlerMethodValidation(
+            HandlerMethodValidationException ex, HttpServletRequest request) {
+
+        Map<String, List<String>> details = ex.getParameterValidationResults()
+                .stream()
+                .filter(result -> !result.getResolvableErrors().isEmpty())
+                .collect(Collectors.toMap(
+                        result -> result.getMethodParameter().getParameterName(),
+                        result -> result.getResolvableErrors()
+                                .stream()
+                                .map(error -> error.getDefaultMessage() != null
+                                        ? error.getDefaultMessage()
+                                        : error.toString())
+                                .collect(Collectors.toCollection(ArrayList::new)),
+                        (left, right) -> {
+                            left.addAll(right);
+                            return left;
+                        }
+                ));
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST, "Validation failed", "Invalid input data", request, details, ex);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            ConstraintViolationException ex, HttpServletRequest request) {
+
+        Map<String, List<String>> details = ex.getConstraintViolations()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        violation -> extractViolationPath(violation),
+                        Collectors.mapping(ConstraintViolation::getMessage, Collectors.toList())
                 ));
 
         return buildResponse(
@@ -67,6 +113,35 @@ public class GlobalExceptionHandler {
                 "Check your request body format", request, null, ex);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+
+        Map<String, List<String>> details = Map.of(
+                ex.getParameterName(),
+                List.of("Required request parameter is missing")
+        );
+
+        return buildResponse(HttpStatus.BAD_REQUEST, "Missing request parameter",
+                ex.getMessage(), request, details, ex);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+
+        String expectedType = ex.getRequiredType() != null
+                ? ex.getRequiredType().getSimpleName()
+                : "required type";
+        Map<String, List<String>> details = Map.of(
+                ex.getName(),
+                List.of("Expected value of type " + expectedType)
+        );
+
+        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request parameter",
+                ex.getMessage(), request, details, ex);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(
             Exception ex, HttpServletRequest request) {
@@ -93,5 +168,11 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(status).body(response);
+    }
+
+    private String extractViolationPath(ConstraintViolation<?> violation) {
+        String path = violation.getPropertyPath().toString();
+        int lastDotIndex = path.lastIndexOf('.');
+        return lastDotIndex >= 0 ? path.substring(lastDotIndex + 1) : path;
     }
 }
