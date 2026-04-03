@@ -12,4 +12,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     @EntityGraph(attributePaths = {"event", "user"})
     List<Ticket> findByUserId(Long userId);
+
+    long countByEventId(Long eventId);
 }

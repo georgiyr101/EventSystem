@@ -4,6 +4,7 @@ import com.example.eventsystem.exception.ConflictException;
 import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.TicketMapper;
+import com.example.eventsystem.model.dto.BulkTicketRequestDto;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
 import com.example.eventsystem.model.entity.Event;
@@ -18,7 +19,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +61,17 @@ public class TicketServiceImpl implements TicketService {
 
         Ticket savedTicket = repository.save(ticket);
         return mapper.toResponseDto(savedTicket);
+    }
+
+    @Override
+    @Transactional
+    public List<TicketResponseDto> buyTicketsBulkTransactional(BulkTicketRequestDto request) {
+        return buyTicketsBulkInternal(request);
+    }
+
+    @Override
+    public List<TicketResponseDto> buyTicketsBulkNonTransactional(BulkTicketRequestDto request) {
+        return buyTicketsBulkInternal(request);
     }
 
     @Transactional(readOnly = true)
@@ -93,5 +111,65 @@ public class TicketServiceImpl implements TicketService {
         return repository.findAll().stream()
                 .map(mapper::toResponseDto)
                 .toList();
+    }
+
+    private List<TicketResponseDto> buyTicketsBulkInternal(BulkTicketRequestDto request) {
+        if (request == null || request.tickets() == null || request.tickets().isEmpty()) {
+            throw new ValidationException("Tickets list must not be empty");
+        }
+
+        User user = userRepo.findById(request.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));
+
+        Set<Long> eventIds = request.tickets().stream()
+                .map(TicketRequestDto::getEventId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Event> eventsById = eventRepo.findAllById(eventIds).stream()
+                .collect(Collectors.toMap(Event::getId, Function.identity()));
+
+        Map<Long, Long> ticketsSoldByEvent = new HashMap<>();
+
+        return request.tickets().stream()
+                .map(ticketRequest -> buySingleTicketInBulk(
+                        ticketRequest,
+                        request.userId(),
+                        user,
+                        eventsById,
+                        ticketsSoldByEvent))
+                .toList();
+    }
+
+    private TicketResponseDto buySingleTicketInBulk(TicketRequestDto ticketRequest,
+                                                    Long bulkUserId,
+                                                    User defaultUser,
+                                                    Map<Long, Event> eventsById,
+                                                    Map<Long, Long> ticketsSoldByEvent) {
+        Long eventId = Optional.ofNullable(ticketRequest.getEventId())
+                .orElseThrow(() -> new ValidationException("Event ID must not be null"));
+
+        Event event = Optional.ofNullable(eventsById.get(eventId))
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        User user = Optional.ofNullable(ticketRequest.getUserId())
+                .filter(id -> id.equals(bulkUserId))
+                .map(id -> defaultUser)
+                .orElseThrow(() -> new ValidationException("Ticket userId must match bulk userId"));
+
+        long soldBeforeBulk = ticketsSoldByEvent.computeIfAbsent(eventId, repository::countByEventId);
+        if (soldBeforeBulk >= event.getMaxParticipants()) {
+            throw new ConflictException("No more tickets available for event id: " + eventId);
+        }
+
+        Ticket ticket = Ticket.builder()
+                .event(event)
+                .user(user)
+                .barcode(ticketRequest.getBarcode())
+                .purchaseDate(LocalDateTime.now())
+                .build();
+
+        Ticket savedTicket = repository.save(ticket);
+        ticketsSoldByEvent.put(eventId, soldBeforeBulk + 1);
+        return mapper.toResponseDto(savedTicket);
     }
 }
