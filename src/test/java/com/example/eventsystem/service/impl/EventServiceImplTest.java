@@ -98,6 +98,26 @@ class EventServiceImplTest {
     }
 
     @Test
+    void createEvent_shouldWorkWhenCategoryIdsAreNull() {
+        EventRequestDto request = requestDto();
+        request.setCategoryIds(null);
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        Event mapped = Event.builder().name("Meetup").build();
+        Event saved = Event.builder().id(10L).name("Meetup").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(10L).name("Meetup").build();
+
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(eventMapper.toEntity(request)).thenReturn(mapped);
+        when(eventRepository.save(mapped)).thenReturn(saved);
+        when(eventMapper.toResponseDto(saved)).thenReturn(response);
+
+        EventResponseDto actual = eventService.createEvent(request);
+
+        assertEquals(10L, actual.getId());
+        verify(categoryRepository, never()).findAllById(any());
+    }
+
+    @Test
     void getEventById_shouldThrowWhenMissing() {
         when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 
@@ -117,6 +137,13 @@ class EventServiceImplTest {
 
         assertEquals(EventStatus.COMPLETED, event.getStatus());
         assertEquals("COMPLETED", actual.getStatusCode());
+    }
+
+    @Test
+    void updateStatus_shouldThrowWhenEventMissing() {
+        when(eventRepository.findById(3L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.updateStatus(3L, EventStatus.CANCELLED));
     }
 
     @Test
@@ -146,6 +173,36 @@ class EventServiceImplTest {
     }
 
     @Test
+    void updateEvent_shouldSkipOrganizerAndCategoriesWhenNull() {
+        EventRequestDto request = requestDto();
+        request.setOrganizerId(null);
+        request.setCategoryIds(null);
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(8L).name("Meetup").build();
+
+        when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
+        when(eventRepository.save(event)).thenReturn(event);
+        when(eventMapper.toResponseDto(event)).thenReturn(response);
+
+        EventResponseDto actual = eventService.updateEvent(8L, request);
+
+        assertEquals(8L, actual.getId());
+        verify(organizerRepository, never()).findById(any());
+        verify(categoryRepository, never()).findAllById(any());
+    }
+
+    @Test
+    void updateEvent_shouldThrowWhenOrganizerMissing() {
+        EventRequestDto request = requestDto();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+
+        when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
+        when(organizerRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.updateEvent(8L, request));
+    }
+
+    @Test
     void deleteEvent_shouldThrowWhenCompleted() {
         Event event = Event.builder().id(4L).status(EventStatus.COMPLETED).build();
         when(eventRepository.findById(4L)).thenReturn(Optional.of(event));
@@ -163,6 +220,41 @@ class EventServiceImplTest {
 
         verify(cacheIndex).clear();
         verify(eventRepository).delete(event);
+    }
+
+    @Test
+    void deleteEvent_shouldThrowWhenEventMissing() {
+        when(eventRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.deleteEvent(404L));
+    }
+
+    @Test
+    void getEventsByStatus_shouldMapAll() {
+        Event event = Event.builder().id(11L).status(EventStatus.PLANNED).build();
+        EventResponseDto dto = EventResponseDto.builder().id(11L).build();
+
+        when(eventRepository.findAllByStatus(EventStatus.PLANNED)).thenReturn(List.of(event));
+        when(eventMapper.toResponseDto(event)).thenReturn(dto);
+
+        List<EventResponseDto> actual = eventService.getEventsByStatus(EventStatus.PLANNED);
+
+        assertEquals(1, actual.size());
+        assertEquals(11L, actual.getFirst().getId());
+    }
+
+    @Test
+    void getAllEvents_shouldMapAll() {
+        Event event = Event.builder().id(12L).status(EventStatus.PLANNED).build();
+        EventResponseDto dto = EventResponseDto.builder().id(12L).build();
+
+        when(eventRepository.findAll()).thenReturn(List.of(event));
+        when(eventMapper.toResponseDto(event)).thenReturn(dto);
+
+        List<EventResponseDto> actual = eventService.getAllEvents();
+
+        assertEquals(1, actual.size());
+        assertEquals(12L, actual.getFirst().getId());
     }
 
     @Test
