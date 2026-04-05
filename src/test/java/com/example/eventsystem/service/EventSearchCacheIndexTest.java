@@ -1,4 +1,4 @@
-﻿package com.example.eventsystem.service;
+package com.example.eventsystem.service;
 
 import com.example.eventsystem.model.dto.EventResponseDto;
 import org.junit.jupiter.api.Test;
@@ -6,45 +6,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EventSearchCacheIndexTest {
 
     private final EventSearchCacheIndex cacheIndex = new EventSearchCacheIndex();
-
-    @Test
-    void equals_specialCases() {
-        Pageable pageable = PageRequest.of(1, 20);
-        EventSearchCacheIndex.EventSearchCacheKey key = EventSearchCacheIndex.EventSearchCacheKey.of(
-                "Music", 5.0, "Org", pageable, false
-        );
-
-        org.junit.jupiter.api.Assertions.assertNotEquals(null, key);
-
-        org.junit.jupiter.api.Assertions.assertNotEquals("some string", key);
-
-        assertEquals(key, key);
-    }
-
-    @Test
-    void equals_differentFields() {
-        Pageable p1 = PageRequest.of(1, 20);
-        Pageable p2 = PageRequest.of(2, 20);
-        Pageable p3 = PageRequest.of(1, 30);
-
-        EventSearchCacheIndex.EventSearchCacheKey base = EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p1, true);
-
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("B", 1.0, "O", p1, true));
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 2.0, "O", p1, true));
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "Other", p1, true));
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p2, true));
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p3, true));
-        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p1, false));
-    }
 
     @Test
     void putGetAndClear_shouldWork() {
@@ -75,5 +48,44 @@ class EventSearchCacheIndexTest {
 
         assertEquals(key1, key2);
         assertEquals(key1.hashCode(), key2.hashCode());
+    }
+
+    @Test
+    void keyEquals_shouldCoverNegativeBranches() {
+        EventSearchCacheIndex.EventSearchCacheKey base = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", PageRequest.of(1, 20), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffCategory = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Tech", 5.0, "Org", PageRequest.of(1, 20), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffPrice = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 6.0, "Org", PageRequest.of(1, 20), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffOrganizer = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Other", PageRequest.of(1, 20), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffPageNumber = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", PageRequest.of(2, 20), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffPageSize = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", PageRequest.of(1, 21), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffSort = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", PageRequest.of(1, 20, Sort.by("name")), false
+        );
+        EventSearchCacheIndex.EventSearchCacheKey diffUseNative = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", PageRequest.of(1, 20), true
+        );
+
+        assertTrue(base.equals(base));
+        assertNotEquals(base, null);
+        assertNotEquals(base, "not-a-key");
+        assertNotEquals(base, diffCategory);
+        assertNotEquals(base, diffPrice);
+        assertNotEquals(base, diffOrganizer);
+        assertNotEquals(base, diffPageNumber);
+        assertNotEquals(base, diffPageSize);
+        assertNotEquals(base, diffSort);
+        assertNotEquals(base, diffUseNative);
     }
 }
