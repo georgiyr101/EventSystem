@@ -1,10 +1,12 @@
 package com.example.eventsystem.service.impl;
 
 import com.example.eventsystem.exception.ConflictException;
+import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.EventMapper;
 import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
+import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.model.enums.EventStatus;
@@ -12,9 +14,9 @@ import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.service.EventSearchCacheIndex;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,96 +28,201 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceImplTest {
 
-    @Mock private EventRepository eventRepository;
-    @Mock private EventMapper eventMapper;
-    @Mock private OrganizerRepository organizerRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private EventSearchCacheIndex cacheIndex;
+    @Mock
+    private EventRepository eventRepository;
+    @Mock
+    private EventMapper eventMapper;
+    @Mock
+    private OrganizerRepository organizerRepository;
+    @Mock
+    private CategoryRepository categoryRepository;
+    @Mock
+    private EventSearchCacheIndex cacheIndex;
 
     @InjectMocks
     private EventServiceImpl eventService;
 
-    private EventRequestDto requestDto;
-    private Event event;
+    @Test
+    void createEvent_shouldThrowWhenEndDateBeforeStartDate() {
+        EventRequestDto request = requestDto();
+        request.setStartDate(LocalDateTime.now().plusDays(2));
+        request.setEndDate(LocalDateTime.now().plusDays(1));
 
-    @BeforeEach
-    void setUp() {
-        requestDto = new EventRequestDto();
-        requestDto.setName("Java Tech Talk");
-        requestDto.setStartDate(LocalDateTime.now().plusDays(1));
-        requestDto.setEndDate(LocalDateTime.now().plusDays(2));
-        requestDto.setOrganizerId(1L);
-
-        event = new Event();
-        event.setId(100L);
-        event.setStatus(EventStatus.PLANNED);
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
     }
 
     @Test
-    void createEvent_ShouldThrowException_WhenDatesAreInvalid() {
-        requestDto.setEndDate(requestDto.getStartDate().minusHours(1));
+    void createEvent_shouldThrowWhenOrganizerNotFound() {
+        EventRequestDto request = requestDto();
 
-        assertThrows(ValidationException.class, () -> eventService.createEvent(requestDto));
-        verifyNoInteractions(eventRepository);
+        when(organizerRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.createEvent(request));
     }
 
     @Test
-    void createEvent_Success() {
-        Organizer organizer = new Organizer();
-        when(organizerRepository.findById(1L)).thenReturn(Optional.of(organizer));
-        when(eventMapper.toEntity(requestDto)).thenReturn(event);
-        when(eventRepository.save(any(Event.class))).thenReturn(event);
-        when(eventMapper.toResponseDto(event)).thenReturn(new EventResponseDto());
+    void createEvent_shouldSetPlannedStatusAndCategoriesAndClearCache() {
+        EventRequestDto request = requestDto();
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        Event mapped = Event.builder().name("Meetup").build();
+        Event saved = Event.builder().id(10L).name("Meetup").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(10L).name("Meetup").build();
+        Category category = Category.builder().id(7L).name("Tech").build();
 
-        eventService.createEvent(requestDto);
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(eventMapper.toEntity(request)).thenReturn(mapped);
+        when(categoryRepository.findAllById(List.of(7L))).thenReturn(List.of(category));
+        when(eventRepository.save(mapped)).thenReturn(saved);
+        when(eventMapper.toResponseDto(saved)).thenReturn(response);
 
-        verify(eventRepository).save(event);
+        EventResponseDto actual = eventService.createEvent(request);
+
+        assertEquals(10L, actual.getId());
+        assertEquals(EventStatus.PLANNED, mapped.getStatus());
+        assertEquals(1, mapped.getCategories().size());
         verify(cacheIndex).clear();
     }
 
     @Test
-    void deleteEvent_ShouldThrowConflict_WhenEventIsCompleted() {
-        event.setStatus(EventStatus.COMPLETED);
-        when(eventRepository.findById(100L)).thenReturn(Optional.of(event));
+    void getEventById_shouldThrowWhenMissing() {
+        when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 
-        assertThrows(ConflictException.class, () -> eventService.deleteEvent(100L));
-        verify(eventRepository, never()).delete(any());
+        assertThrows(ResourceNotFoundException.class, () -> eventService.getEventById(3L));
     }
 
     @Test
-    void searchEvents_ShouldReturnFromCache_WhenCacheHit() {
+    void updateStatus_shouldSaveNewStatus() {
+        Event event = Event.builder().id(3L).status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(3L).statusCode("COMPLETED").build();
+
+        when(eventRepository.findById(3L)).thenReturn(Optional.of(event));
+        when(eventRepository.save(event)).thenReturn(event);
+        when(eventMapper.toResponseDto(event)).thenReturn(response);
+
+        EventResponseDto actual = eventService.updateStatus(3L, EventStatus.COMPLETED);
+
+        assertEquals(EventStatus.COMPLETED, event.getStatus());
+        assertEquals("COMPLETED", actual.getStatusCode());
+    }
+
+    @Test
+    void updateEvent_shouldUpdateFieldsOrganizerCategoriesAndClearCache() {
+        EventRequestDto request = requestDto();
+        request.setName("Updated");
+        request.setCategoryIds(List.of(1L, 2L));
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(8L).name("Updated").build();
+
+        when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(categoryRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(
+                Category.builder().id(1L).name("Tech").build(),
+                Category.builder().id(2L).name("Business").build()
+        ));
+        when(eventRepository.save(event)).thenReturn(event);
+        when(eventMapper.toResponseDto(event)).thenReturn(response);
+
+        EventResponseDto actual = eventService.updateEvent(8L, request);
+
+        assertEquals("Updated", event.getName());
+        assertEquals(2, event.getCategories().size());
+        assertEquals("Updated", actual.getName());
+        verify(cacheIndex).clear();
+    }
+
+    @Test
+    void deleteEvent_shouldThrowWhenCompleted() {
+        Event event = Event.builder().id(4L).status(EventStatus.COMPLETED).build();
+        when(eventRepository.findById(4L)).thenReturn(Optional.of(event));
+
+        assertThrows(ConflictException.class, () -> eventService.deleteEvent(4L));
+        verify(eventRepository, never()).delete(any(Event.class));
+    }
+
+    @Test
+    void deleteEvent_shouldDeleteAndClearCache() {
+        Event event = Event.builder().id(4L).status(EventStatus.PLANNED).build();
+        when(eventRepository.findById(4L)).thenReturn(Optional.of(event));
+
+        eventService.deleteEvent(4L);
+
+        verify(cacheIndex).clear();
+        verify(eventRepository).delete(event);
+    }
+
+    @Test
+    void searchEvents_shouldReturnCachedValueOnHit() {
         Pageable pageable = PageRequest.of(0, 10);
-        Page<EventResponseDto> cachedPage = new PageImpl<>(List.of(new EventResponseDto()));
+        Page<EventResponseDto> cached = new PageImpl<>(List.of(EventResponseDto.builder().id(1L).build()));
 
-        when(cacheIndex.get(any())).thenReturn(cachedPage);
+        when(cacheIndex.get(any(EventSearchCacheIndex.EventSearchCacheKey.class))).thenReturn(cached);
 
-        Page<EventResponseDto> result = eventService.searchEvents("Rock", 100.0, "Club", pageable, false);
+        Page<EventResponseDto> actual = eventService.searchEvents("Tech", 10.0, "Org", pageable, false);
 
-        assertEquals(cachedPage, result);
+        assertEquals(1, actual.getTotalElements());
         verifyNoInteractions(eventRepository);
     }
 
     @Test
-    void searchEvents_ShouldQueryRepo_WhenCacheMiss() {
+    void searchEvents_shouldReturnEmptyPageWhenNoIds() {
         Pageable pageable = PageRequest.of(0, 10);
-        Page<Long> idPage = new PageImpl<>(List.of(100L));
 
-        when(cacheIndex.get(any())).thenReturn(null); // Промах кэша
-        when(eventRepository.findIdsByFilterJpql(any(), any(), any(), any())).thenReturn(idPage);
-        when(eventRepository.findAllByIdsWithDependencies(any())).thenReturn(List.of(event));
-        when(eventMapper.toResponseDto(event)).thenReturn(new EventResponseDto());
+        when(cacheIndex.get(any(EventSearchCacheIndex.EventSearchCacheKey.class))).thenReturn(null);
+        when(eventRepository.findIdsByFilterJpql("Tech", 10.0, "Org", pageable)).thenReturn(Page.empty(pageable));
 
-        eventService.searchEvents("Tech", null, null, pageable, false);
+        Page<EventResponseDto> actual = eventService.searchEvents("Tech", 10.0, "Org", pageable, false);
 
-        verify(eventRepository).findIdsByFilterJpql(any(), any(), any(), any());
-        verify(cacheIndex).put(any(), any());
+        assertTrue(actual.isEmpty());
+        verify(cacheIndex, never()).put(any(), any());
+    }
+
+    @Test
+    void searchEvents_shouldLoadByNativeMapAndPutToCache() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Event event = Event.builder().id(11L).name("Conf").status(EventStatus.PLANNED)
+                .organizer(Organizer.builder().name("Org").build())
+                .categories(Set.of(Category.builder().name("Tech").build()))
+                .build();
+        EventResponseDto dto = EventResponseDto.builder().id(11L).name("Conf").build();
+        Page<Long> idPage = new PageImpl<>(List.of(11L), pageable, 1);
+
+        when(cacheIndex.get(any(EventSearchCacheIndex.EventSearchCacheKey.class))).thenReturn(null);
+        when(eventRepository.findIdsByFilterNative("Tech", 10.0, "Org", pageable)).thenReturn(idPage);
+        when(eventRepository.findAllByIdsWithDependencies(List.of(11L))).thenReturn(List.of(event));
+        when(eventMapper.toResponseDto(event)).thenReturn(dto);
+
+        Page<EventResponseDto> actual = eventService.searchEvents("Tech", 10.0, "Org", pageable, true);
+
+        assertEquals(1, actual.getTotalElements());
+        assertEquals(11L, actual.getContent().getFirst().getId());
+        verify(cacheIndex).put(any(EventSearchCacheIndex.EventSearchCacheKey.class),
+                ArgumentMatchers.any(Page.class));
+    }
+
+    private static EventRequestDto requestDto() {
+        EventRequestDto dto = new EventRequestDto();
+        dto.setName("Meetup");
+        dto.setStartDate(LocalDateTime.now().plusDays(2));
+        dto.setEndDate(LocalDateTime.now().plusDays(3));
+        dto.setMaxParticipants(100);
+        dto.setTicketPrice(20.0);
+        dto.setOrganizerId(5L);
+        dto.setCategoryIds(List.of(7L));
+        return dto;
     }
 }

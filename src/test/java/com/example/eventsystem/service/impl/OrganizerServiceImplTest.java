@@ -6,7 +6,6 @@ import com.example.eventsystem.model.dto.OrganizerRequestDto;
 import com.example.eventsystem.model.dto.OrganizerResponseDto;
 import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.repository.OrganizerRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,116 +15,99 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OrganizerServiceImplTest {
 
     @Mock
     private OrganizerRepository organizerRepository;
-
     @Mock
     private OrganizerMapper organizerMapper;
 
     @InjectMocks
     private OrganizerServiceImpl organizerService;
 
-    private Organizer organizer;
-    private OrganizerResponseDto responseDto;
+    @Test
+    void create_shouldSaveOrganizer() {
+        OrganizerRequestDto dto = new OrganizerRequestDto("Tech", "tech@example.com");
+        Organizer organizer = Organizer.builder().name("Tech").contactInfo("tech@example.com").build();
+        Organizer saved = Organizer.builder().id(1L).name("Tech").contactInfo("tech@example.com").build();
+        OrganizerResponseDto response = new OrganizerResponseDto(1L, "Tech", "tech@example.com");
 
-    @BeforeEach
-    void setUp() {
-        organizer = new Organizer();
-        organizer.setId(1L);
-        organizer.setName("Global Events");
-        organizer.setContactInfo("info@global.com");
+        when(organizerMapper.toEntity(dto)).thenReturn(organizer);
+        when(organizerRepository.save(organizer)).thenReturn(saved);
+        when(organizerMapper.toResponseDto(saved)).thenReturn(response);
 
-        responseDto = new OrganizerResponseDto();
-        responseDto.setId(1L);
-        responseDto.setName("Global Events");
-        responseDto.setContactInfo("info@global.com");
+        OrganizerResponseDto actual = organizerService.create(dto);
+
+        assertEquals(1L, actual.getId());
     }
 
     @Test
-    void create_Success() {
-        OrganizerRequestDto requestDto = new OrganizerRequestDto();
-        requestDto.setName("New Org");
+    void getById_shouldThrowWhenNotFound() {
+        when(organizerRepository.findById(2L)).thenReturn(Optional.empty());
 
-        when(organizerMapper.toEntity(any(OrganizerRequestDto.class))).thenReturn(organizer);
-        when(organizerRepository.save(any(Organizer.class))).thenReturn(organizer);
-        when(organizerMapper.toResponseDto(organizer)).thenReturn(responseDto);
-
-        OrganizerResponseDto result = organizerService.create(requestDto);
-
-        assertNotNull(result);
-        assertEquals("Global Events", result.getName());
-        verify(organizerRepository).save(any(Organizer.class));
+        assertThrows(ResourceNotFoundException.class, () -> organizerService.getById(2L));
     }
 
     @Test
-    void getById_Success() {
-        when(organizerRepository.findById(1L)).thenReturn(Optional.of(organizer));
-        when(organizerMapper.toResponseDto(organizer)).thenReturn(responseDto);
+    void searchByName_shouldFilterIgnoringCase() {
+        Organizer o1 = Organizer.builder().id(1L).name("Alpha Org").contactInfo("a@a").build();
+        Organizer o2 = Organizer.builder().id(2L).name("Beta Team").contactInfo("b@b").build();
 
-        OrganizerResponseDto result = organizerService.getById(1L);
+        when(organizerRepository.findAll()).thenReturn(List.of(o1, o2));
+        when(organizerMapper.toResponseDto(o2)).thenReturn(new OrganizerResponseDto(2L, "Beta Team", "b@b"));
 
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
+        List<OrganizerResponseDto> actual = organizerService.searchByName("BETA");
+
+        assertEquals(1, actual.size());
+        assertEquals("Beta Team", actual.getFirst().getName());
     }
 
     @Test
-    void getById_NotFound_ThrowsException() {
-        when(organizerRepository.findById(99L)).thenReturn(Optional.empty());
+    void update_shouldApplyFields() {
+        OrganizerRequestDto dto = new OrganizerRequestDto("New Name", "new@example.com");
+        Organizer organizer = Organizer.builder().id(5L).name("Old").contactInfo("old@example.com").build();
+        OrganizerResponseDto response = new OrganizerResponseDto(5L, "New Name", "new@example.com");
 
-        assertThrows(ResourceNotFoundException.class, () -> organizerService.getById(99L));
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(organizerRepository.save(organizer)).thenReturn(organizer);
+        when(organizerMapper.toResponseDto(organizer)).thenReturn(response);
+
+        OrganizerResponseDto actual = organizerService.update(5L, dto);
+
+        assertEquals("New Name", organizer.getName());
+        assertEquals("new@example.com", actual.getContactInfo());
     }
 
     @Test
-    void searchByName_ShouldFilterCorrectly() {
-        Organizer other = new Organizer();
-        other.setName("Local Music");
+    void delete_shouldThrowWhenNotExists() {
+        when(organizerRepository.existsById(7L)).thenReturn(false);
 
-        when(organizerRepository.findAll()).thenReturn(List.of(organizer, other));
-        when(organizerMapper.toResponseDto(organizer)).thenReturn(responseDto);
-
-        List<OrganizerResponseDto> result = organizerService.searchByName("global");
-
-        assertEquals(1, result.size());
-        assertEquals("Global Events", result.getFirst().getName());
+        assertThrows(ResourceNotFoundException.class, () -> organizerService.delete(7L));
     }
 
     @Test
-    void update_Success() {
-        OrganizerRequestDto updateDto = new OrganizerRequestDto();
-        updateDto.setName("Updated Name");
-        updateDto.setContactInfo("new@contact.com");
+    void delete_shouldDeleteById() {
+        when(organizerRepository.existsById(7L)).thenReturn(true);
 
-        when(organizerRepository.findById(1L)).thenReturn(Optional.of(organizer));
-        when(organizerRepository.save(any(Organizer.class))).thenReturn(organizer);
-        when(organizerMapper.toResponseDto(any(Organizer.class))).thenReturn(responseDto);
+        organizerService.delete(7L);
 
-        organizerService.update(1L, updateDto);
-
-        assertEquals("Updated Name", organizer.getName());
-        verify(organizerRepository).save(organizer);
+        verify(organizerRepository).deleteById(7L);
     }
 
     @Test
-    void delete_Success() {
-        when(organizerRepository.existsById(1L)).thenReturn(true);
+    void getAllOrganizers_shouldMapAll() {
+        Organizer organizer = Organizer.builder().id(3L).name("Org").contactInfo("c").build();
+        when(organizerRepository.findAll()).thenReturn(List.of(organizer));
+        when(organizerMapper.toResponseDto(organizer)).thenReturn(new OrganizerResponseDto(3L, "Org", "c"));
 
-        organizerService.delete(1L);
+        List<OrganizerResponseDto> actual = organizerService.getAllOrganizers();
 
-        verify(organizerRepository).deleteById(1L);
-    }
-
-    @Test
-    void delete_NotFound_ThrowsException() {
-        when(organizerRepository.existsById(1L)).thenReturn(false);
-
-        assertThrows(ResourceNotFoundException.class, () -> organizerService.delete(1L));
-        verify(organizerRepository, never()).deleteById(anyLong());
+        assertEquals(1, actual.size());
     }
 }

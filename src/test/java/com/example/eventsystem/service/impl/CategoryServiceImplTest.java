@@ -7,7 +7,6 @@ import com.example.eventsystem.model.dto.CategoryResponseDto;
 import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.repository.CategoryRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,96 +16,112 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
 
     @Mock
     private CategoryRepository categoryRepository;
-
     @Mock
     private CategoryMapper categoryMapper;
 
     @InjectMocks
     private CategoryServiceImpl categoryService;
 
-    private Category category;
-    private CategoryResponseDto responseDto;
+    @Test
+    void create_shouldSaveCategory() {
+        CategoryRequestDto dto = new CategoryRequestDto("Music");
+        Category category = Category.builder().name("Music").build();
+        Category saved = Category.builder().id(1L).name("Music").build();
+        CategoryResponseDto response = new CategoryResponseDto(1L, "Music");
 
-    @BeforeEach
-    void setUp() {
-        category = Category.builder()
-                .id(1L)
-                .name("Concerts")
-                .events(new HashSet<>())
-                .build();
+        when(categoryMapper.toEntity(dto)).thenReturn(category);
+        when(categoryRepository.save(category)).thenReturn(saved);
+        when(categoryMapper.toResponseDto(saved)).thenReturn(response);
 
-        responseDto = new CategoryResponseDto();
-        responseDto.setId(1L);
-        responseDto.setName("Concerts");
+        CategoryResponseDto actual = categoryService.create(dto);
+
+        assertEquals(1L, actual.getId());
+        assertEquals("Music", actual.getName());
     }
 
     @Test
-    void getById_Success() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toResponseDto(category)).thenReturn(responseDto);
+    void getById_shouldThrowWhenNotFound() {
+        when(categoryRepository.findById(7L)).thenReturn(Optional.empty());
 
-        CategoryResponseDto result = categoryService.getById(1L);
-
-        assertNotNull(result);
-        assertEquals("Concerts", result.getName());
-        verify(categoryRepository).findById(1L);
+        assertThrows(ResourceNotFoundException.class, () -> categoryService.getById(7L));
     }
 
     @Test
-    void getById_NotFound_ThrowsException() {
-        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+    void update_shouldUpdateName() {
+        CategoryRequestDto dto = new CategoryRequestDto("Tech");
+        Category category = Category.builder().id(3L).name("Old").build();
+        CategoryResponseDto response = new CategoryResponseDto(3L, "Tech");
 
-        assertThrows(ResourceNotFoundException.class, () -> categoryService.getById(99L));
+        when(categoryRepository.findById(3L)).thenReturn(Optional.of(category));
+        when(categoryRepository.save(category)).thenReturn(category);
+        when(categoryMapper.toResponseDto(category)).thenReturn(response);
+
+        CategoryResponseDto actual = categoryService.update(3L, dto);
+
+        assertEquals("Tech", category.getName());
+        assertEquals("Tech", actual.getName());
     }
 
     @Test
-    void getAll_WithFilter_ReturnsFilteredList() {
-        Category cat2 = Category.builder().id(2L).name("Festivals").build();
-        when(categoryRepository.findAll()).thenReturn(List.of(category, cat2));
-        when(categoryMapper.toResponseDto(category)).thenReturn(responseDto);
+    void getAll_shouldFilterByName() {
+        Category c1 = Category.builder().id(1L).name("Music").build();
+        Category c2 = Category.builder().id(2L).name("Technology").build();
 
-        List<CategoryResponseDto> result = categoryService.getAll("con");
+        when(categoryRepository.findAll()).thenReturn(List.of(c1, c2));
+        when(categoryMapper.toResponseDto(c2)).thenReturn(new CategoryResponseDto(2L, "Technology"));
 
-        assertEquals(1, result.size());
-        verify(categoryMapper, times(1)).toResponseDto(any());
+        List<CategoryResponseDto> actual = categoryService.getAll("tech");
+
+        assertEquals(1, actual.size());
+        assertEquals("Technology", actual.getFirst().getName());
     }
 
     @Test
-    void delete_ShouldUnlinkEventsBeforeRemoving() {
-        Event event = new Event();
-        event.setCategories(new HashSet<>(List.of(category)));
-        category.getEvents().add(event);
+    void delete_shouldDetachFromEventsAndDelete() {
+        Category category = Category.builder().id(9L).name("Business").build();
+        Event event = Event.builder().id(10L).build();
+        Set<Category> categories = new HashSet<>();
+        categories.add(category);
+        event.setCategories(categories);
+        category.setEvents(Set.of(event));
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.findById(9L)).thenReturn(Optional.of(category));
 
-        categoryService.delete(1L);
+        categoryService.delete(9L);
 
-        assertTrue(event.getCategories().isEmpty(), "Category should be removed from event");
+        assertEquals(0, event.getCategories().size());
         verify(categoryRepository).delete(category);
     }
 
     @Test
-    void create_Success() {
-        CategoryRequestDto requestDto = new CategoryRequestDto();
-        requestDto.setName("New Category");
+    void delete_shouldThrowWhenNotFound() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
-        when(categoryMapper.toEntity(requestDto)).thenReturn(category);
-        when(categoryRepository.save(category)).thenReturn(category);
-        when(categoryMapper.toResponseDto(category)).thenReturn(responseDto);
+        assertThrows(ResourceNotFoundException.class, () -> categoryService.delete(1L));
+    }
 
-        CategoryResponseDto result = categoryService.create(requestDto);
+    @Test
+    void getAllCategories_shouldReturnMappedList() {
+        Category c1 = Category.builder().id(1L).name("Music").build();
 
-        assertNotNull(result);
-        verify(categoryRepository).save(any(Category.class));
+        when(categoryRepository.findAll()).thenReturn(List.of(c1));
+        when(categoryMapper.toResponseDto(any(Category.class))).thenReturn(new CategoryResponseDto(1L, "Music"));
+
+        List<CategoryResponseDto> actual = categoryService.getAllCategories();
+
+        assertEquals(1, actual.size());
     }
 }

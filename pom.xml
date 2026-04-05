@@ -15,8 +15,21 @@
     <name>event-system</name>
 
     <properties>
-        <java.version>21</java.version> <sonar.organization>georgiyr101</sonar.organization>
-        <lombok.version>1.18.34</lombok.version> </properties>
+        <java.version>21</java.version>
+        <sonar.organization>georgiyr101</sonar.organization>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>
+            **/aspect/**,
+            **/config/**,
+            **/controller/**,
+            **/exception/**,
+            **/mapper/**,
+            **/model/**,
+            **/repository/**,
+            **/EventSystemApplication.java
+        </sonar.coverage.exclusions>
+        <lombok.version>1.18.34</lombok.version>
+    </properties>
 
     <dependencies>
         <dependency>

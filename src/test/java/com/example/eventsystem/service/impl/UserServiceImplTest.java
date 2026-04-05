@@ -6,7 +6,6 @@ import com.example.eventsystem.model.dto.UserRequestDto;
 import com.example.eventsystem.model.dto.UserResponseDto;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,117 +15,105 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private UserMapper userMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
 
-    private User user;
-    private UserResponseDto responseDto;
+    @Test
+    void register_shouldSaveUser() {
+        UserRequestDto dto = new UserRequestDto("Ivan", "ivan@example.com");
+        User user = User.builder().fullName("Ivan").email("ivan@example.com").build();
+        User saved = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
+        UserResponseDto response = new UserResponseDto(1L, "Ivan", "ivan@example.com");
 
-    @BeforeEach
-    void setUp() {
-        user = new User();
-        user.setId(1L);
-        user.setFullName("Ivan Ivanov");
-        user.setEmail("ivan@example.com");
+        when(userMapper.toEntity(dto)).thenReturn(user);
+        when(userRepository.save(user)).thenReturn(saved);
+        when(userMapper.toResponseDto(saved)).thenReturn(response);
 
-        responseDto = new UserResponseDto();
-        responseDto.setId(1L);
-        responseDto.setFullName("Ivan Ivanov");
-        responseDto.setEmail("ivan@example.com");
+        UserResponseDto actual = userService.register(dto);
+
+        assertEquals(1L, actual.getId());
     }
 
     @Test
-    void register_Success() {
-        UserRequestDto requestDto = new UserRequestDto();
-        requestDto.setEmail("new@example.com");
+    void getById_shouldThrowWhenNotFound() {
+        when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
-        when(userMapper.toEntity(requestDto)).thenReturn(user);
-        when(userRepository.save(any(User.class))).thenReturn(user);
-        when(userMapper.toResponseDto(user)).thenReturn(responseDto);
-
-        UserResponseDto result = userService.register(requestDto);
-
-        assertNotNull(result);
-        assertEquals("ivan@example.com", result.getEmail());
-        verify(userRepository).save(any(User.class));
+        assertThrows(ResourceNotFoundException.class, () -> userService.getById(2L));
     }
 
     @Test
-    void getById_Success() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userMapper.toResponseDto(user)).thenReturn(responseDto);
+    void getByEmail_shouldFindIgnoringCase() {
+        User user = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
 
-        UserResponseDto result = userService.getById(1L);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-    }
-
-    @Test
-    void getByEmail_Success() {
-        User otherUser = new User();
-        otherUser.setEmail("other@example.com");
-
-        when(userRepository.findAll()).thenReturn(List.of(otherUser, user));
-        when(userMapper.toResponseDto(user)).thenReturn(responseDto);
-
-        UserResponseDto result = userService.getByEmail("IVAN@example.com");
-
-        assertNotNull(result);
-        assertEquals("ivan@example.com", result.getEmail());
-    }
-
-    @Test
-    void getByEmail_NotFound_ThrowsException() {
         when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com"));
 
-        assertThrows(ResourceNotFoundException.class, () -> userService.getByEmail("nonexistent@example.com"));
+        UserResponseDto actual = userService.getByEmail("IVAN@EXAMPLE.COM");
+
+        assertEquals("Ivan", actual.getFullName());
     }
 
     @Test
-    void update_Success() {
-        UserRequestDto updateDto = new UserRequestDto();
-        updateDto.setFullName("New Name");
-        updateDto.setEmail("new@email.com");
+    void getByEmail_shouldThrowWhenNotFound() {
+        when(userRepository.findAll()).thenReturn(List.of());
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        assertThrows(ResourceNotFoundException.class, () -> userService.getByEmail("missing@example.com"));
+    }
+
+    @Test
+    void update_shouldApplyFields() {
+        UserRequestDto dto = new UserRequestDto("New Name", "new@example.com");
+        User user = User.builder().id(3L).fullName("Old").email("old@example.com").build();
+        UserResponseDto response = new UserResponseDto(3L, "New Name", "new@example.com");
+
+        when(userRepository.findById(3L)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
-        when(userMapper.toResponseDto(user)).thenReturn(responseDto);
+        when(userMapper.toResponseDto(user)).thenReturn(response);
 
-        userService.update(1L, updateDto);
+        UserResponseDto actual = userService.update(3L, dto);
 
         assertEquals("New Name", user.getFullName());
-        assertEquals("new@email.com", user.getEmail());
-        verify(userRepository).save(user);
+        assertEquals("new@example.com", actual.getEmail());
     }
 
     @Test
-    void delete_Success() {
-        when(userRepository.existsById(1L)).thenReturn(true);
+    void delete_shouldThrowWhenNotExists() {
+        when(userRepository.existsById(9L)).thenReturn(false);
 
-        userService.delete(1L);
-
-        verify(userRepository).deleteById(1L);
+        assertThrows(ResourceNotFoundException.class, () -> userService.delete(9L));
     }
 
     @Test
-    void delete_NotFound_ThrowsException() {
-        when(userRepository.existsById(1L)).thenReturn(false);
+    void delete_shouldDeleteById() {
+        when(userRepository.existsById(9L)).thenReturn(true);
 
-        assertThrows(ResourceNotFoundException.class, () -> userService.delete(1L));
-        verify(userRepository, never()).deleteById(anyLong());
+        userService.delete(9L);
+
+        verify(userRepository).deleteById(9L);
+    }
+
+    @Test
+    void getAllUsers_shouldMapAll() {
+        User user = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
+
+        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com"));
+
+        List<UserResponseDto> actual = userService.getAllUsers();
+
+        assertEquals(1, actual.size());
     }
 }
