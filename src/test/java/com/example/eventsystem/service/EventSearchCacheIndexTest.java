@@ -77,9 +77,9 @@ class EventSearchCacheIndexTest {
                 "Music", 5.0, "Org", PageRequest.of(1, 20), true
         );
 
-        assertTrue(base.equals(base));
-        assertNotEquals(base, null);
-        assertNotEquals(base, "not-a-key");
+        assertEquals(base, base);
+        assertNotEquals(null, base);
+        assertNotEquals("not-a-key", base);
         assertNotEquals(base, diffCategory);
         assertNotEquals(base, diffPrice);
         assertNotEquals(base, diffOrganizer);
