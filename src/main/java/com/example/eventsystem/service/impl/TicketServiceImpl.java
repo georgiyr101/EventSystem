@@ -4,6 +4,7 @@ import com.example.eventsystem.exception.ConflictException;
 import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.TicketMapper;
+import com.example.eventsystem.model.dto.BulkTicketItemRequestDto;
 import com.example.eventsystem.model.dto.BulkTicketRequestDto;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
@@ -122,7 +123,7 @@ public class TicketServiceImpl implements TicketService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));
 
         Set<Long> eventIds = request.tickets().stream()
-                .map(TicketRequestDto::getEventId)
+                .map(BulkTicketItemRequestDto::eventId)
                 .collect(Collectors.toSet());
 
         Map<Long, Event> eventsById = eventRepo.findAllById(eventIds).stream()
@@ -133,28 +134,23 @@ public class TicketServiceImpl implements TicketService {
         return request.tickets().stream()
                 .map(ticketRequest -> buySingleTicketInBulk(
                         ticketRequest,
-                        request.userId(),
                         user,
                         eventsById,
                         ticketsSoldByEvent))
                 .toList();
     }
 
-    private TicketResponseDto buySingleTicketInBulk(TicketRequestDto ticketRequest,
-                                                    Long bulkUserId,
+    private TicketResponseDto buySingleTicketInBulk(BulkTicketItemRequestDto ticketRequest,
                                                     User defaultUser,
                                                     Map<Long, Event> eventsById,
                                                     Map<Long, Long> ticketsSoldByEvent) {
-        Long eventId = Optional.ofNullable(ticketRequest.getEventId())
+        Long eventId = Optional.ofNullable(ticketRequest.eventId())
                 .orElseThrow(() -> new ValidationException("Event ID must not be null"));
 
         Event event = Optional.ofNullable(eventsById.get(eventId))
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
 
-        User user = Optional.ofNullable(ticketRequest.getUserId())
-                .filter(id -> id.equals(bulkUserId))
-                .map(id -> defaultUser)
-                .orElseThrow(() -> new ValidationException("Ticket userId must match bulk userId"));
+        User user = defaultUser;
 
         long soldBeforeBulk = ticketsSoldByEvent.computeIfAbsent(eventId, repository::countByEventId);
         if (soldBeforeBulk >= event.getMaxParticipants()) {
@@ -164,7 +160,7 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = Ticket.builder()
                 .event(event)
                 .user(user)
-                .barcode(ticketRequest.getBarcode())
+                .barcode(ticketRequest.barcode())
                 .purchaseDate(LocalDateTime.now())
                 .build();
 

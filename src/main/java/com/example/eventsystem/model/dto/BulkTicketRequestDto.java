@@ -8,17 +8,16 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-@Schema(description = "Запрос на пакетную покупку билетов")
+@Schema(description = "Bulk ticket purchase request")
 public record BulkTicketRequestDto(
-        @Schema(description = "Идентификатор пользователя", example = "7")
-        @NotNull(message = "User ID обязателен")
+        @Schema(description = "User identifier", example = "7")
+        @NotNull(message = "User ID is required")
         Long userId,
 
-        @ArraySchema(schema = @Schema(implementation = TicketRequestDto.class),
-                arraySchema = @Schema(description = "Список билетов для покупки"))
-        @NotEmpty(message = "Список билетов не может быть пустым")
+        @ArraySchema(schema = @Schema(implementation = BulkTicketItemRequestDto.class),
+                arraySchema = @Schema(description = "List of tickets to purchase"))
+        @NotEmpty(message = "Tickets list must not be empty")
         @Valid
-        List<TicketRequestDto> tickets
+        List<BulkTicketItemRequestDto> tickets
 ) {
-
 }

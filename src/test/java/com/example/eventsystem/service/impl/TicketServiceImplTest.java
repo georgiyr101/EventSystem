@@ -4,6 +4,7 @@ import com.example.eventsystem.exception.ConflictException;
 import com.example.eventsystem.exception.ResourceNotFoundException;
 import com.example.eventsystem.exception.ValidationException;
 import com.example.eventsystem.mapper.TicketMapper;
+import com.example.eventsystem.model.dto.BulkTicketItemRequestDto;
 import com.example.eventsystem.model.dto.BulkTicketRequestDto;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
@@ -299,8 +300,8 @@ class TicketServiceImplTest {
         User user = user(10L);
         Event event = event(100L, 5);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
-                List.of(ticketRequest(100L, 10L, "AAA11111"),
-                        ticketRequest(100L, 10L, "BBB22222")));
+                List.of(bulkItem(100L, "AAA11111"),
+                        bulkItem(100L, "BBB22222")));
 
         stubCommonDependencies(user, event);
 
@@ -316,9 +317,9 @@ class TicketServiceImplTest {
         Event event = event(100L, 2);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
                 List.of(
-                        ticketRequest(100L, 10L, "AAA11111"),
-                        ticketRequest(100L, 10L, "BBB22222"),
-                        ticketRequest(100L, 10L, "CCC33333")
+                        bulkItem(100L, "AAA11111"),
+                        bulkItem(100L, "BBB22222"),
+                        bulkItem(100L, "CCC33333")
                 ));
 
         stubCommonDependencies(user, event);
@@ -333,7 +334,7 @@ class TicketServiceImplTest {
         User user = user(10L);
         Event event = event(100L, 5);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
-                List.of(ticketRequest(100L, 10L, "AAA11111")));
+                List.of(bulkItem(100L, "AAA11111")));
 
         stubCommonDependencies(user, event);
 
@@ -360,11 +361,11 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void buyTicketsBulkTransactional_shouldFailWhenUserIdInsideItemDiffersFromBulkUserId() {
+    void buyTicketsBulkTransactional_shouldFailWhenEventIdInsideItemIsNull() {
         User user = user(10L);
         Event event = event(100L, 3);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
-                List.of(ticketRequest(100L, 99L, "AAA11111")));
+                List.of(bulkItem(null, "AAA11111")));
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
         when(eventRepository.findAllById(ArgumentMatchers.anyCollection())).thenReturn(List.of(event));
@@ -403,6 +404,10 @@ class TicketServiceImplTest {
         dto.setUserId(userId);
         dto.setBarcode(barcode);
         return dto;
+    }
+
+    private static BulkTicketItemRequestDto bulkItem(Long eventId, String barcode) {
+        return new BulkTicketItemRequestDto(eventId, barcode);
     }
 
     private static User user(Long id) {

@@ -1,8 +1,8 @@
 package com.example.eventsystem.service.impl;
 
 import com.example.eventsystem.exception.ConflictException;
+import com.example.eventsystem.model.dto.BulkTicketItemRequestDto;
 import com.example.eventsystem.model.dto.BulkTicketRequestDto;
-import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.model.enums.EventStatus;
@@ -52,9 +52,9 @@ class TicketBulkTransactionIntegrationTest {
                 .build());
 
         BulkTicketRequestDto request = new BulkTicketRequestDto(user.getId(), List.of(
-                ticketRequest(event.getId(), user.getId(), "BULKNON1"),
-                ticketRequest(event.getId(), user.getId(), "BULKNON2"),
-                ticketRequest(event.getId(), user.getId(), "BULKNON3")
+                bulkItem(event.getId(), "BULKNON1"),
+                bulkItem(event.getId(), "BULKNON2"),
+                bulkItem(event.getId(), "BULKNON3")
         ));
 
         assertThrows(ConflictException.class, () -> ticketService.buyTicketsBulkNonTransactional(request));
@@ -73,9 +73,9 @@ class TicketBulkTransactionIntegrationTest {
                 .build());
 
         BulkTicketRequestDto request = new BulkTicketRequestDto(user.getId(), List.of(
-                ticketRequest(event.getId(), user.getId(), "BULKTX01"),
-                ticketRequest(event.getId(), user.getId(), "BULKTX02"),
-                ticketRequest(event.getId(), user.getId(), "BULKTX03")
+                bulkItem(event.getId(), "BULKTX01"),
+                bulkItem(event.getId(), "BULKTX02"),
+                bulkItem(event.getId(), "BULKTX03")
         ));
 
         assertThrows(ConflictException.class, () -> ticketService.buyTicketsBulkTransactional(request));
@@ -83,11 +83,7 @@ class TicketBulkTransactionIntegrationTest {
         assertEquals(0L, ticketRepository.countByEventId(event.getId()));
     }
 
-    private static TicketRequestDto ticketRequest(Long eventId, Long userId, String barcode) {
-        TicketRequestDto dto = new TicketRequestDto();
-        dto.setEventId(eventId);
-        dto.setUserId(userId);
-        dto.setBarcode(barcode);
-        return dto;
+    private static BulkTicketItemRequestDto bulkItem(Long eventId, String barcode) {
+        return new BulkTicketItemRequestDto(eventId, barcode);
     }
 }
