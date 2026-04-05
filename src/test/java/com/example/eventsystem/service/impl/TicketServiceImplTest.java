@@ -94,6 +94,16 @@ class TicketServiceImplTest {
     }
 
     @Test
+    void buyTicket_shouldThrowValidationWhenOnlyEventIdIsNull() {
+        TicketRequestDto request = new TicketRequestDto();
+        request.setEventId(null);
+        request.setUserId(10L);
+        request.setBarcode("AAA11111");
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicket(request));
+    }
+
+    @Test
     void buyTicket_shouldThrowConflictWhenEventIsSoldOut() {
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 1);
@@ -204,6 +214,25 @@ class TicketServiceImplTest {
         List<TicketResponseDto> result = ticketService.getTickets(null, null);
 
         assertEquals(2, result.size());
+    }
+
+    @Test
+    void getTickets_shouldFilterOnlyByUserWhenBarcodeIsNull() {
+        User u1 = user(10L);
+        User u2 = user(20L);
+        Event event = event(100L, 10);
+        Ticket t1 = Ticket.builder().id(1L).user(u1).event(event).barcode("AAA11111").build();
+        Ticket t2 = Ticket.builder().id(2L).user(u2).event(event).barcode("BBB22222").build();
+        TicketResponseDto d1 = new TicketResponseDto();
+        d1.setId(1L);
+
+        when(ticketRepository.findAll()).thenReturn(List.of(t1, t2));
+        when(ticketMapper.toResponseDto(t1)).thenReturn(d1);
+
+        List<TicketResponseDto> result = ticketService.getTickets(10L, null);
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.getFirst().getId());
     }
 
     @Test
@@ -321,6 +350,12 @@ class TicketServiceImplTest {
     @Test
     void buyTicketsBulkNonTransactional_shouldThrowValidationWhenTicketsListIsNull() {
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L, null);
+        assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkNonTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkNonTransactional_shouldThrowValidationWhenTicketsListIsEmpty() {
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of());
         assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkNonTransactional(request));
     }
 
