@@ -118,6 +118,26 @@ class EventServiceImplTest {
     }
 
     @Test
+    void createEvent_shouldWorkWhenCategoryIdsAreEmpty() {
+        EventRequestDto request = requestDto();
+        request.setCategoryIds(List.of());
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        Event mapped = Event.builder().name("Meetup").build();
+        Event saved = Event.builder().id(10L).name("Meetup").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(10L).name("Meetup").build();
+
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(eventMapper.toEntity(request)).thenReturn(mapped);
+        when(eventRepository.save(mapped)).thenReturn(saved);
+        when(eventMapper.toResponseDto(saved)).thenReturn(response);
+
+        EventResponseDto actual = eventService.createEvent(request);
+
+        assertEquals(10L, actual.getId());
+        verify(categoryRepository, never()).findAllById(any());
+    }
+
+    @Test
     void getEventById_shouldThrowWhenMissing() {
         when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 

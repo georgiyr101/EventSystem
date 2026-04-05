@@ -84,6 +84,16 @@ class TicketServiceImplTest {
     }
 
     @Test
+    void buyTicket_shouldThrowValidationWhenOnlyUserIdIsNull() {
+        TicketRequestDto request = new TicketRequestDto();
+        request.setEventId(100L);
+        request.setUserId(null);
+        request.setBarcode("AAA11111");
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicket(request));
+    }
+
+    @Test
     void buyTicket_shouldThrowConflictWhenEventIsSoldOut() {
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 1);

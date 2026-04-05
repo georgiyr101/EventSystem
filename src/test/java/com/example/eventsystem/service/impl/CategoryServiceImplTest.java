@@ -90,6 +90,20 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    void getAll_shouldReturnAllWhenNameIsNull() {
+        Category c1 = Category.builder().id(1L).name("Music").build();
+        Category c2 = Category.builder().id(2L).name("Technology").build();
+
+        when(categoryRepository.findAll()).thenReturn(List.of(c1, c2));
+        when(categoryMapper.toResponseDto(c1)).thenReturn(new CategoryResponseDto(1L, "Music"));
+        when(categoryMapper.toResponseDto(c2)).thenReturn(new CategoryResponseDto(2L, "Technology"));
+
+        List<CategoryResponseDto> actual = categoryService.getAll(null);
+
+        assertEquals(2, actual.size());
+    }
+
+    @Test
     void delete_shouldDetachFromEventsAndDelete() {
         Category category = Category.builder().id(9L).name("Business").build();
         Event event = Event.builder().id(10L).build();

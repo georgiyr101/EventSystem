@@ -69,6 +69,20 @@ class OrganizerServiceImplTest {
     }
 
     @Test
+    void searchByName_shouldReturnAllWhenNameIsNull() {
+        Organizer o1 = Organizer.builder().id(1L).name("Alpha Org").contactInfo("a@a").build();
+        Organizer o2 = Organizer.builder().id(2L).name("Beta Team").contactInfo("b@b").build();
+
+        when(organizerRepository.findAll()).thenReturn(List.of(o1, o2));
+        when(organizerMapper.toResponseDto(o1)).thenReturn(new OrganizerResponseDto(1L, "Alpha Org", "a@a"));
+        when(organizerMapper.toResponseDto(o2)).thenReturn(new OrganizerResponseDto(2L, "Beta Team", "b@b"));
+
+        List<OrganizerResponseDto> actual = organizerService.searchByName(null);
+
+        assertEquals(2, actual.size());
+    }
+
+    @Test
     void update_shouldApplyFields() {
         OrganizerRequestDto dto = new OrganizerRequestDto("New Name", "new@example.com");
         Organizer organizer = Organizer.builder().id(5L).name("Old").contactInfo("old@example.com").build();
