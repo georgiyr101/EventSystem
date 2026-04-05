@@ -1,4 +1,4 @@
-package com.example.eventsystem.service;
+﻿package com.example.eventsystem.service;
 
 import com.example.eventsystem.model.dto.EventResponseDto;
 import org.junit.jupiter.api.Test;
@@ -15,6 +15,36 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class EventSearchCacheIndexTest {
 
     private final EventSearchCacheIndex cacheIndex = new EventSearchCacheIndex();
+
+    @Test
+    void equals_specialCases() {
+        Pageable pageable = PageRequest.of(1, 20);
+        EventSearchCacheIndex.EventSearchCacheKey key = EventSearchCacheIndex.EventSearchCacheKey.of(
+                "Music", 5.0, "Org", pageable, false
+        );
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(null, key);
+
+        org.junit.jupiter.api.Assertions.assertNotEquals("some string", key);
+
+        assertEquals(key, key);
+    }
+
+    @Test
+    void equals_differentFields() {
+        Pageable p1 = PageRequest.of(1, 20);
+        Pageable p2 = PageRequest.of(2, 20);
+        Pageable p3 = PageRequest.of(1, 30);
+
+        EventSearchCacheIndex.EventSearchCacheKey base = EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p1, true);
+
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("B", 1.0, "O", p1, true));
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 2.0, "O", p1, true));
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "Other", p1, true));
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p2, true));
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p3, true));
+        org.junit.jupiter.api.Assertions.assertNotEquals(base, EventSearchCacheIndex.EventSearchCacheKey.of("A", 1.0, "O", p1, false));
+    }
 
     @Test
     void putGetAndClear_shouldWork() {
