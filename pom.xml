@@ -141,6 +141,7 @@
                         <configuration>
                             <includes>
                                 <include>com.example.eventsystem.service.impl.*</include>
+                                <include>com.example.eventsystem.service.EventSearchCacheIndex*</include>
                             </includes>
                             <excludes>
                                 <exclude>*MockitoMock*</exclude>
@@ -157,6 +158,7 @@
                         <configuration>
                             <includes>
                                 <include>com/example/eventsystem/service/impl/*ServiceImpl.class</include>
+                                <include>com/example/eventsystem/service/EventSearchCacheIndex*.class</include>
                             </includes>
                         </configuration>
                     </execution>
