@@ -1,8 +1,11 @@
 package com.example.eventsystem.controller;
 
+import com.example.eventsystem.model.dto.AsyncTaskCreatedResponseDto;
 import com.example.eventsystem.model.dto.BulkTicketRequestDto;
+import com.example.eventsystem.model.dto.BulkTicketTaskStatusResponseDto;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
+import com.example.eventsystem.service.TicketAsyncService;
 import com.example.eventsystem.service.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -31,6 +34,7 @@ import java.util.List;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketAsyncService ticketAsyncService;
 
     @Operation(summary = "Buy ticket",
             description = "Registers ticket purchase for a user and event")
@@ -54,6 +58,22 @@ public class TicketController {
                 ? ticketService.buyTicketsBulkTransactional(requestDto)
                 : ticketService.buyTicketsBulkNonTransactional(requestDto);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Start async bulk ticket purchase",
+            description = "Starts asynchronous bulk purchase and returns task identifier")
+    @PostMapping("/bulk/async")
+    public ResponseEntity<AsyncTaskCreatedResponseDto> buyBulkAsync(
+            @Valid @RequestBody BulkTicketRequestDto requestDto,
+            @RequestParam(defaultValue = "true") boolean transactional) {
+        AsyncTaskCreatedResponseDto response = ticketAsyncService.submitBulkPurchase(requestDto, transactional);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @Operation(summary = "Get async task status")
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<BulkTicketTaskStatusResponseDto> getTaskStatus(@PathVariable String taskId) {
+        return ResponseEntity.ok(ticketAsyncService.getTaskStatus(taskId));
     }
 
     @Operation(summary = "Get ticket by ID")
