@@ -13,12 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -91,8 +94,94 @@ class TicketAsyncServiceImplTest {
     }
 
     @Test
+    void getTaskStatus_shouldReturnDefaultErrorWhenCauseMessageIsNull() {
+        BulkTicketRequestDto request = request();
+        CompletableFuture<List<TicketResponseDto>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new CompletionException(new IllegalStateException()));
+        when(ticketBulkAsyncWorker.buyBulk(request, true)).thenReturn(failedFuture);
+
+        AsyncTaskCreatedResponseDto task = ticketAsyncService.submitBulkPurchase(request, true);
+        BulkTicketTaskStatusResponseDto status = ticketAsyncService.getTaskStatus(task.taskId());
+
+        assertEquals(BulkTicketTaskStatus.FAILED, status.status());
+        assertEquals("Async task failed", status.error());
+    }
+
+    @Test
+    void getTaskStatus_shouldReturnDefaultErrorWhenCauseMessageIsBlank() {
+        BulkTicketRequestDto request = request();
+        CompletableFuture<List<TicketResponseDto>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new CompletionException(new IllegalArgumentException("   ")));
+        when(ticketBulkAsyncWorker.buyBulk(request, true)).thenReturn(failedFuture);
+
+        AsyncTaskCreatedResponseDto task = ticketAsyncService.submitBulkPurchase(request, true);
+        BulkTicketTaskStatusResponseDto status = ticketAsyncService.getTaskStatus(task.taskId());
+
+        assertEquals(BulkTicketTaskStatus.FAILED, status.status());
+        assertEquals("Async task failed", status.error());
+    }
+
+    @Test
+    void getTaskStatus_shouldUnwrapNestedCompletionExceptions() {
+        BulkTicketRequestDto request = request();
+        Throwable nested = new CompletionException(new CompletionException(new ConflictException("Nested failure")));
+        CompletableFuture<List<TicketResponseDto>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(nested);
+        when(ticketBulkAsyncWorker.buyBulk(request, false)).thenReturn(failedFuture);
+
+        AsyncTaskCreatedResponseDto task = ticketAsyncService.submitBulkPurchase(request, false);
+        BulkTicketTaskStatusResponseDto status = ticketAsyncService.getTaskStatus(task.taskId());
+
+        assertEquals(BulkTicketTaskStatus.FAILED, status.status());
+        assertEquals("Nested failure", status.error());
+    }
+
+    @Test
+    void getTaskStatus_shouldReturnDefaultErrorWhenCompletionExceptionHasNoCause() {
+        BulkTicketRequestDto request = request();
+        CompletableFuture<List<TicketResponseDto>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new CompletionException((Throwable) null));
+        when(ticketBulkAsyncWorker.buyBulk(request, false)).thenReturn(failedFuture);
+
+        AsyncTaskCreatedResponseDto task = ticketAsyncService.submitBulkPurchase(request, false);
+        BulkTicketTaskStatusResponseDto status = ticketAsyncService.getTaskStatus(task.taskId());
+
+        assertEquals(BulkTicketTaskStatus.FAILED, status.status());
+        assertEquals("Async task failed", status.error());
+    }
+
+    @Test
     void getTaskStatus_shouldThrowWhenTaskIsMissing() {
         assertThrows(ResourceNotFoundException.class, () -> ticketAsyncService.getTaskStatus("task-999"));
+    }
+
+    @Test
+    void unwrapCompletionCause_shouldHandleWrappedAndNonWrappedErrors() {
+        RuntimeException plain = new RuntimeException("plain");
+        Throwable plainResult = ReflectionTestUtils.invokeMethod(
+                ticketAsyncService, "unwrapCompletionCause", plain);
+        assertSame(plain, plainResult);
+
+        IllegalStateException root = new IllegalStateException("root");
+        CompletionException wrapped = new CompletionException(root);
+        Throwable wrappedResult = ReflectionTestUtils.invokeMethod(
+                ticketAsyncService, "unwrapCompletionCause", wrapped);
+        assertSame(root, wrappedResult);
+
+        CompletionException withoutCause = new CompletionException((Throwable) null);
+        Throwable withoutCauseResult = ReflectionTestUtils.invokeMethod(
+                ticketAsyncService, "unwrapCompletionCause", withoutCause);
+        assertSame(withoutCause, withoutCauseResult);
+    }
+
+    @Test
+    void extractErrorMessage_shouldReturnDefaultWhenFutureHasNoErrorObject() {
+        String message = ReflectionTestUtils.invokeMethod(
+                ticketAsyncService,
+                "extractErrorMessage",
+                CompletableFuture.completedFuture(List.of()));
+
+        assertEquals("Async task failed", message);
     }
 
     private BulkTicketRequestDto request() {

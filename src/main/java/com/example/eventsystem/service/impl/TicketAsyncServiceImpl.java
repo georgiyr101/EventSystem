@@ -62,16 +62,12 @@ public class TicketAsyncServiceImpl implements TicketAsyncService {
     }
 
     private String extractErrorMessage(CompletableFuture<List<TicketResponseDto>> taskFuture) {
-        try {
-            taskFuture.join();
-            return null;
-        } catch (RuntimeException ex) {
-            Throwable cause = unwrapCompletionCause(ex);
-            if (cause.getMessage() == null || cause.getMessage().isBlank()) {
-                return "Async task failed";
-            }
-            return cause.getMessage();
+        Throwable throwable = taskFuture.handle((result, error) -> error).join();
+        Throwable cause = unwrapCompletionCause(throwable);
+        if (cause == null || cause.getMessage() == null || cause.getMessage().isBlank()) {
+            return "Async task failed";
         }
+        return cause.getMessage();
     }
 
     private Throwable unwrapCompletionCause(Throwable throwable) {
