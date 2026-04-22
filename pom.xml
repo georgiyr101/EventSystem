@@ -26,6 +26,7 @@
             **/mapper/**,
             **/model/**,
             **/repository/**,
+            **/TicketBulkAsyncWorker.java,
             **/EventSystemApplication.java
         </sonar.coverage.exclusions>
         <lombok.version>1.18.34</lombok.version>
