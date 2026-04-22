@@ -18,6 +18,11 @@ public class TicketBulkAsyncWorker {
 
     @Async
     public CompletableFuture<List<TicketResponseDto>> buyBulk(BulkTicketRequestDto request, boolean transactional) {
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         List<TicketResponseDto> result = transactional
                 ? ticketService.buyTicketsBulkTransactional(request)
                 : ticketService.buyTicketsBulkNonTransactional(request);

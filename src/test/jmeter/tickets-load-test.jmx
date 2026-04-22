@@ -22,7 +22,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="RaceConditionTest">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="RaceConditionTest" enabled="true">
           <stringProp name="HTTPSampler.domain">localhost</stringProp>
           <stringProp name="HTTPSampler.port">8080</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -142,11 +142,7 @@
   &quot;userId&quot;: 4,&#xd;
   &quot;tickets&quot;: [&#xd;
     {&#xd;
-      &quot;eventId&quot;: 15,&#xd;
-      &quot;barcode&quot;: &quot;ASYNC-${__RandomString(10,1234567890)}&quot;&#xd;
-    },&#xd;
-    {&#xd;
-      &quot;eventId&quot;: 14,&#xd;
+      &quot;eventId&quot;: 10,&#xd;
       &quot;barcode&quot;: &quot;ASYNC-${__RandomString(10,1234567890)}&quot;&#xd;
     },&#xd;
     {&#xd;
@@ -161,7 +157,7 @@
           </elementProp>
         </HTTPSamplerProxy>
         <hashTree/>
-        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
           <collectionProp name="HeaderManager.headers">
             <elementProp name="" elementType="Header">
               <stringProp name="Header.name">Content-Type</stringProp>
