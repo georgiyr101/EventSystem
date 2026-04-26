@@ -102,6 +102,7 @@ public class ConcurrencyDemoServiceImpl implements ConcurrencyDemoService {
         }
     }
 
+    @Getter
     private static final class SynchronizedCounter {
         private int value;
 
@@ -109,8 +110,5 @@ public class ConcurrencyDemoServiceImpl implements ConcurrencyDemoService {
             value++;
         }
 
-        public synchronized int getValue() {
-            return value;
-        }
     }
 }
