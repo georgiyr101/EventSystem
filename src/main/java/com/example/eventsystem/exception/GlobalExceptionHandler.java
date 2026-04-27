@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,13 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException ex, HttpServletRequest request) {
         return buildResponse(
                 HttpStatus.NOT_FOUND, "Resource not found", ex.getMessage(), request, null, ex);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoStaticResource(
+            NoResourceFoundException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request, null, ex);
     }
 
     @ExceptionHandler(ValidationException.class)
