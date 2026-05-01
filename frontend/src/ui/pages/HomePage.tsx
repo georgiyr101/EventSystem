@@ -60,7 +60,7 @@ export function HomePage() {
         <Stack spacing={2}>
           <Typography variant="h4">Найдите мероприятие за несколько секунд</Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-            Введите название события и/или укажите фильтры — вы попадёте на страницу Events с результатами.
+            Введите название события и/или укажите фильтры
           </Typography>
 
           <Stack
