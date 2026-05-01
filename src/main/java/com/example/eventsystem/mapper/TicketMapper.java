@@ -20,6 +20,7 @@ public class TicketMapper {
         if (ticket.getEvent() != null) {
             dto.setEventId(ticket.getEvent().getId());
             dto.setEventName(ticket.getEvent().getName());
+            dto.setEventStartDate(ticket.getEvent().getStartDate());
         }
 
         if (ticket.getUser() != null) {

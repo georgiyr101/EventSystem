@@ -1,5 +1,6 @@
 package com.example.eventsystem.model.dto;
 
+import com.example.eventsystem.model.enums.AppRole;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,4 +20,10 @@ public class UserResponseDto {
 
     @Schema(description = "Email пользователя", example = "ivan.petrov@example.com")
     private String email;
+
+    @Schema(description = "Роль пользователя", example = "USER")
+    private AppRole role;
+
+    @Schema(description = "ID профиля организатора (если применимо)", example = "10")
+    private Long organizerId;
 }

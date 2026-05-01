@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.OrganizerRequestDto;
 import com.example.eventsystem.model.dto.OrganizerResponseDto;
 import com.example.eventsystem.service.OrganizerService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,12 +39,14 @@ public class OrganizerController {
             @ApiResponse(responseCode = "201", description = "Организатор успешно создан"),
             @ApiResponse(responseCode = "400", description = "Ошибка валидации входных данных")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<OrganizerResponseDto> create(@Valid @RequestBody OrganizerRequestDto requestDto) {
         return new ResponseEntity<>(organizerService.create(requestDto), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Получить список всех организаторов")
+    @SecurityRequirements
     @GetMapping
     public ResponseEntity<List<OrganizerResponseDto>> getAll() {
         return ResponseEntity.ok(organizerService.getAllOrganizers());
@@ -53,6 +57,7 @@ public class OrganizerController {
             @ApiResponse(responseCode = "200", description = "Организатор найден"),
             @ApiResponse(responseCode = "404", description = "Организатор с таким ID не существует")
     })
+    @SecurityRequirements
     @GetMapping("/{id}")
     public ResponseEntity<OrganizerResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(organizerService.getById(id));
@@ -60,6 +65,7 @@ public class OrganizerController {
 
     @Operation(summary = "Поиск по имени",
             description = "Возвращает список организаторов, чье имя содержит указанную строку.")
+    @SecurityRequirements
     @GetMapping("/search")
     public ResponseEntity<List<OrganizerResponseDto>> search(@RequestParam String name) {
         return ResponseEntity.ok(organizerService.searchByName(name));
@@ -71,6 +77,7 @@ public class OrganizerController {
             @ApiResponse(responseCode = "404", description = "Организатор не найден"),
             @ApiResponse(responseCode = "400", description = "Ошибка валидации данных")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<OrganizerResponseDto> update(@PathVariable Long id,
                                                        @Valid @RequestBody OrganizerRequestDto requestDto) {
@@ -82,6 +89,7 @@ public class OrganizerController {
             @ApiResponse(responseCode = "204", description = "Организатор удален"),
             @ApiResponse(responseCode = "404", description = "Организатор не найден")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         organizerService.delete(id);

@@ -18,8 +18,8 @@ public class TicketRequestDto {
     @NotNull(message = "Event ID обязателен")
     private Long eventId;
 
-    @Schema(description = "Идентификатор пользователя", example = "7")
-    @NotNull(message = "User ID обязателен")
+    @Schema(description = "Идентификатор пользователя (legacy; для USER игнорируется — берётся из JWT)",
+            example = "7")
     private Long userId;
 
     @Schema(description = "Штрих-код билета", example = "ABC12345-01")

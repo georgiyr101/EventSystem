@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,12 +39,14 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Ошибка валидации данных"),
             @ApiResponse(responseCode = "409", description = "Пользователь с таким Email уже существует")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto requestDto) {
         return new ResponseEntity<>(userService.register(requestDto), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Получить всех пользователей")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponseDto>> getAll() {
         return ResponseEntity.ok(userService.getAllUsers());
@@ -54,6 +57,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Пользователь найден"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
@@ -64,6 +68,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Пользователь найден"),
             @ApiResponse(responseCode = "404", description = "Пользователь с таким Email не существует")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/find")
     public ResponseEntity<UserResponseDto> getByEmail(@RequestParam String email) {
         return ResponseEntity.ok(userService.getByEmail(email));
@@ -75,6 +80,7 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDto> update(@PathVariable Long id,
                                                   @Valid @RequestBody UserRequestDto requestDto) {
@@ -86,6 +92,7 @@ public class UserController {
             @ApiResponse(responseCode = "204", description = "Пользователь удален"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);

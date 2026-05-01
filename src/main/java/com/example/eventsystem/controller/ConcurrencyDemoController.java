@@ -2,6 +2,7 @@ package com.example.eventsystem.controller;
 
 import com.example.eventsystem.model.dto.RaceConditionDemoResponse;
 import com.example.eventsystem.service.ConcurrencyDemoService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -27,6 +28,7 @@ public class ConcurrencyDemoController {
             @ApiResponse(responseCode = "200", description = "Demo completed"),
             @ApiResponse(responseCode = "400", description = "Invalid request parameters")
     })
+    @SecurityRequirements
     @GetMapping("/race-demo")
     public ResponseEntity<RaceConditionDemoResponse> runRaceDemo(
             @RequestParam(defaultValue = "60") @Min(1) final int threads,

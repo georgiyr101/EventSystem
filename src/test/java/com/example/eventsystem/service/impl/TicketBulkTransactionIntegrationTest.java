@@ -5,15 +5,20 @@ import com.example.eventsystem.model.dto.BulkTicketItemRequestDto;
 import com.example.eventsystem.model.dto.BulkTicketRequestDto;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.User;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
+import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.TicketService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -35,10 +40,25 @@ class TicketBulkTransactionIntegrationTest {
     private UserRepository userRepository;
 
     @BeforeEach
-    void cleanDb() {
+    void cleanDbAndLoginAsAdmin() {
+        SecurityContextHolder.clearContext();
         ticketRepository.deleteAll();
         eventRepository.deleteAll();
         userRepository.deleteAll();
+        User admin = User.builder()
+                .id(1L)
+                .email("admin@example.com")
+                .fullName("Admin")
+                .role(AppRole.ADMIN)
+                .build();
+        UserPrincipal principal = new UserPrincipal(admin);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test

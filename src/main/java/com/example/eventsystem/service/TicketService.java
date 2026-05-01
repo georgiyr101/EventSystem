@@ -22,4 +22,6 @@ public interface TicketService {
     void delete(Long id);
 
     List<TicketResponseDto> getAllTickets();
+
+    long countByEventId(Long eventId);
 }

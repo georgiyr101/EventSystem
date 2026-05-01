@@ -11,15 +11,20 @@ import com.example.eventsystem.model.dto.TicketResponseDto;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Ticket;
 import com.example.eventsystem.model.entity.User;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
+import com.example.eventsystem.security.UserPrincipal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -39,6 +44,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TicketServiceImplTest {
 
+    @AfterEach
+    void tearDownSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Mock
     private TicketRepository ticketRepository;
     @Mock
@@ -53,6 +63,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldSaveAndMap() {
+        loginAsUser(10L);
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 2);
         event.setTickets(new ArrayList<>());
@@ -86,12 +97,21 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldThrowValidationWhenOnlyUserIdIsNull() {
+        loginAsUser(10L);
         TicketRequestDto request = new TicketRequestDto();
         request.setEventId(100L);
         request.setUserId(null);
         request.setBarcode("AAA11111");
 
-        assertThrows(ValidationException.class, () -> ticketService.buyTicket(request));
+        Event event = event(100L, 2);
+        event.setTickets(new ArrayList<>());
+        when(eventRepository.findById(100L)).thenReturn(Optional.of(event));
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user(10L)));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ticketMapper.toResponseDto(any(Ticket.class))).thenReturn(new TicketResponseDto());
+
+        ticketService.buyTicket(request);
+        verify(userRepository).findById(10L);
     }
 
     @Test
@@ -106,6 +126,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldThrowConflictWhenEventIsSoldOut() {
+        loginAsUser(10L);
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 1);
         event.setTickets(new ArrayList<>(List.of(new Ticket())));
@@ -119,6 +140,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldThrowWhenEventNotFound() {
+        loginAsUser(10L);
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         when(eventRepository.findById(100L)).thenReturn(Optional.empty());
 
@@ -127,6 +149,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldThrowWhenUserNotFound() {
+        loginAsUser(10L);
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 10);
         event.setTickets(new ArrayList<>());
@@ -139,6 +162,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicket_shouldAllowWhenEventTicketsCollectionIsNull() {
+        loginAsUser(10L);
         TicketRequestDto request = ticketRequest(100L, 10L, "AAA11111");
         Event event = event(100L, 10);
         event.setTickets(null);
@@ -179,6 +203,7 @@ class TicketServiceImplTest {
 
     @Test
     void getTickets_shouldFilterByUserAndBarcode() {
+        loginAsUser(10L);
         User u1 = user(10L);
         User u2 = user(20L);
         Event event = event(100L, 10);
@@ -199,6 +224,7 @@ class TicketServiceImplTest {
 
     @Test
     void getTickets_shouldReturnAllWhenFiltersAreNull() {
+        loginAsAdmin();
         User u1 = user(10L);
         Event event = event(100L, 10);
         Ticket t1 = Ticket.builder().id(1L).user(u1).event(event).barcode("AAA11111").build();
@@ -219,6 +245,7 @@ class TicketServiceImplTest {
 
     @Test
     void getTickets_shouldFilterOnlyByUserWhenBarcodeIsNull() {
+        loginAsUser(10L);
         User u1 = user(10L);
         User u2 = user(20L);
         Event event = event(100L, 10);
@@ -297,6 +324,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicketsBulkTransactional_shouldSaveAllTicketsWhenCapacityIsEnough() {
+        loginAsAdmin();
         User user = user(10L);
         Event event = event(100L, 5);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
@@ -313,6 +341,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicketsBulkNonTransactional_shouldThrowWhenCapacityExceededAfterPartialSaves() {
+        loginAsAdmin();
         User user = user(10L);
         Event event = event(100L, 2);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
@@ -331,6 +360,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicketsBulkNonTransactional_shouldSaveWhenRequestIsValid() {
+        loginAsAdmin();
         User user = user(10L);
         Event event = event(100L, 5);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
@@ -362,6 +392,7 @@ class TicketServiceImplTest {
 
     @Test
     void buyTicketsBulkTransactional_shouldFailWhenEventIdInsideItemIsNull() {
+        loginAsAdmin();
         User user = user(10L);
         Event event = event(100L, 3);
         BulkTicketRequestDto request = new BulkTicketRequestDto(10L,
@@ -415,6 +446,7 @@ class TicketServiceImplTest {
                 .id(id)
                 .email("user@example.com")
                 .fullName("User")
+                .role(AppRole.USER)
                 .build();
     }
 
@@ -424,5 +456,26 @@ class TicketServiceImplTest {
                 .name("Event")
                 .maxParticipants(maxParticipants)
                 .build();
+    }
+
+    private void loginAsUser(long userId) {
+        User entity = user(userId);
+        UserPrincipal principal = new UserPrincipal(entity);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+    }
+
+    private void loginAsAdmin() {
+        User entity = User.builder()
+                .id(1L)
+                .email("admin@example.com")
+                .fullName("Admin")
+                .role(AppRole.ADMIN)
+                .build();
+        UserPrincipal principal = new UserPrincipal(entity);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
     }
 }

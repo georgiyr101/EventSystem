@@ -16,6 +16,8 @@ import java.util.List;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
+    boolean existsByIdAndOrganizer_Id(Long id, Long organizerId);
+
     @Override
     @NonNull
     @EntityGraph(attributePaths = {"organizer", "categories"})

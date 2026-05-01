@@ -5,6 +5,7 @@ import com.example.eventsystem.mapper.UserMapper;
 import com.example.eventsystem.model.dto.UserRequestDto;
 import com.example.eventsystem.model.dto.UserResponseDto;
 import com.example.eventsystem.model.entity.User;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +37,7 @@ class UserServiceImplTest {
         UserRequestDto dto = new UserRequestDto("Ivan", "ivan@example.com");
         User user = User.builder().fullName("Ivan").email("ivan@example.com").build();
         User saved = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
-        UserResponseDto response = new UserResponseDto(1L, "Ivan", "ivan@example.com");
+        UserResponseDto response = new UserResponseDto(1L, "Ivan", "ivan@example.com", AppRole.USER, null);
 
         when(userMapper.toEntity(dto)).thenReturn(user);
         when(userRepository.save(user)).thenReturn(saved);
@@ -59,7 +60,8 @@ class UserServiceImplTest {
         User user = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
 
         when(userRepository.findAll()).thenReturn(List.of(user));
-        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com"));
+        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com",
+                AppRole.USER, null));
 
         UserResponseDto actual = userService.getByEmail("IVAN@EXAMPLE.COM");
 
@@ -77,7 +79,7 @@ class UserServiceImplTest {
     void update_shouldApplyFields() {
         UserRequestDto dto = new UserRequestDto("New Name", "new@example.com");
         User user = User.builder().id(3L).fullName("Old").email("old@example.com").build();
-        UserResponseDto response = new UserResponseDto(3L, "New Name", "new@example.com");
+        UserResponseDto response = new UserResponseDto(3L, "New Name", "new@example.com", AppRole.USER, null);
 
         when(userRepository.findById(3L)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
@@ -110,7 +112,8 @@ class UserServiceImplTest {
         User user = User.builder().id(1L).fullName("Ivan").email("ivan@example.com").build();
 
         when(userRepository.findAll()).thenReturn(List.of(user));
-        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com"));
+        when(userMapper.toResponseDto(user)).thenReturn(new UserResponseDto(1L, "Ivan", "ivan@example.com",
+                AppRole.USER, null));
 
         List<UserResponseDto> actual = userService.getAllUsers();
 

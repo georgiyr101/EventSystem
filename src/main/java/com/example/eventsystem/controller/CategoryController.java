@@ -3,6 +3,7 @@ package com.example.eventsystem.controller;
 import com.example.eventsystem.model.dto.CategoryRequestDto;
 import com.example.eventsystem.model.dto.CategoryResponseDto;
 import com.example.eventsystem.service.CategoryService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +38,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "201", description = "Категория успешно создана"),
             @ApiResponse(responseCode = "400", description = "Некорректные входные данные")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CategoryResponseDto> create(@Valid @RequestBody CategoryRequestDto requestDto) {
         return new ResponseEntity<>(categoryService.create(requestDto), HttpStatus.CREATED);
@@ -46,12 +49,14 @@ public class CategoryController {
             @ApiResponse(responseCode = "200", description = "Категория найдена"),
             @ApiResponse(responseCode = "404", description = "Категория не найдена")
     })
+    @SecurityRequirements
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getById(id));
     }
 
     @Operation(summary = "Получить все категории")
+    @SecurityRequirements
     @GetMapping
     public ResponseEntity<List<CategoryResponseDto>> getAll(@RequestParam(required = false) String name) {
         if (name != null && !name.isEmpty()) {
@@ -66,6 +71,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "400", description = "Ошибка валидации"),
             @ApiResponse(responseCode = "404", description = "Категория для обновления не найдена")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<CategoryResponseDto> update(
             @PathVariable Long id,
@@ -78,6 +84,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "204", description = "Категория успешно удалена"),
             @ApiResponse(responseCode = "404", description = "Категория не найдена")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         categoryService.delete(id);

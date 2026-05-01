@@ -22,6 +22,9 @@ public class TicketResponseDto {
     @Schema(description = "Название мероприятия", example = "Spring Boot Meetup")
     private String eventName;
 
+    @Schema(description = "Дата и время начала мероприятия")
+    private LocalDateTime eventStartDate;
+
     @Schema(description = "Идентификатор пользователя", example = "7")
     private Long userId;
 

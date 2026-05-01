@@ -11,11 +11,15 @@ import com.example.eventsystem.model.dto.TicketResponseDto;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Ticket;
 import com.example.eventsystem.model.entity.User;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
+import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.TicketService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,15 +43,14 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional
     public TicketResponseDto buyTicket(TicketRequestDto dto) {
-        if (dto.getEventId() == null || dto.getUserId() == null) {
-            throw new ValidationException("Event ID and User ID must not be null");
+        if (dto.getEventId() == null) {
+            throw new ValidationException("Event ID must not be null");
         }
 
         Event event = eventRepo.findById(dto.getEventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + dto.getEventId()));
 
-        User user = userRepo.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        User user = resolvePurchasingUser(dto.getUserId());
 
         if (event.getTickets() != null && event.getTickets().size() >= event.getMaxParticipants()) {
             throw new ConflictException("No more tickets available for this event");
@@ -84,8 +87,27 @@ public class TicketServiceImpl implements TicketService {
 
     @Transactional(readOnly = true)
     public List<TicketResponseDto> getTickets(Long userId, String barcode) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        AppRole role = null;
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal principal) {
+            role = principal.getRole();
+            if (principal.getRole() == AppRole.USER) {
+                userId = principal.getId();
+            } else if (principal.getRole() == AppRole.ORGANIZER) {
+                throw new ValidationException("ORGANIZER cannot list tickets via this endpoint");
+            }
+        }
+
+        if (userId == null && barcode == null) {
+            if (role == AppRole.ADMIN) {
+                return getAllTickets();
+            }
+            throw new ValidationException("userId or barcode must be provided");
+        }
+
+        final Long effectiveUserId = userId;
         return repository.findAll().stream()
-                .filter(t -> (userId == null || t.getUser().getId().equals(userId))
+                .filter(t -> (effectiveUserId == null || t.getUser().getId().equals(effectiveUserId))
                         && (barcode == null || t.getBarcode().equals(barcode)))
                 .map(mapper::toResponseDto).toList();
     }
@@ -114,13 +136,18 @@ public class TicketServiceImpl implements TicketService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countByEventId(Long eventId) {
+        return repository.countByEventId(eventId);
+    }
+
     private List<TicketResponseDto> buyTicketsBulkInternal(BulkTicketRequestDto request) {
         if (request == null || request.tickets() == null || request.tickets().isEmpty()) {
             throw new ValidationException("Tickets list must not be empty");
         }
 
-        User user = userRepo.findById(request.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));
+        User user = resolvePurchasingUser(request.userId());
 
         Set<Long> eventIds = request.tickets().stream()
                 .map(BulkTicketItemRequestDto::eventId)
@@ -167,5 +194,28 @@ public class TicketServiceImpl implements TicketService {
         Ticket savedTicket = repository.save(ticket);
         ticketsSoldByEvent.put(eventId, soldBeforeBulk + 1);
         return mapper.toResponseDto(savedTicket);
+    }
+
+    private User resolvePurchasingUser(Long requestedUserId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            throw new ValidationException("Not authenticated");
+        }
+
+        if (principal.getRole() == AppRole.ADMIN) {
+            Long userId = requestedUserId;
+            if (userId == null) {
+                throw new ValidationException("userId is required for ADMIN purchases");
+            }
+            return userRepo.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        }
+
+        if (principal.getRole() == AppRole.USER) {
+            return userRepo.findById(principal.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + principal.getId()));
+        }
+
+        throw new ValidationException("Only USER or ADMIN can purchase tickets");
     }
 }

@@ -4,6 +4,8 @@ import com.example.eventsystem.model.dto.EventRequestDto;
 import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.service.EventService;
+import com.example.eventsystem.service.TicketService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/events")
@@ -34,18 +38,21 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final TicketService ticketService;
 
     @Operation(summary = "Создать новое мероприятие")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Мероприятие создано"),
             @ApiResponse(responseCode = "400", description = "Ошибка валидации данных")
     })
+    @PreAuthorize("@eventAuth.canCreate(#requestDto, authentication)")
     @PostMapping
     public ResponseEntity<EventResponseDto> create(@Valid @RequestBody EventRequestDto requestDto) {
         return new ResponseEntity<>(eventService.createEvent(requestDto), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Получить список всех мероприятий")
+    @SecurityRequirements
     @GetMapping
     public ResponseEntity<List<EventResponseDto>> getAll() {
         return ResponseEntity.ok(eventService.getAllEvents());
@@ -56,12 +63,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Успешный возврат данных"),
             @ApiResponse(responseCode = "404", description = "Мероприятие не найдено")
     })
+    @SecurityRequirements
     @GetMapping("/{id}")
     public ResponseEntity<EventResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(eventService.getEventById(id));
     }
 
+    @Operation(summary = "Количество проданных билетов на событие (организатор / админ)")
+    @PreAuthorize("@eventAuth.canMutateByEventId(#id, authentication)")
+    @GetMapping("/{id}/sold-tickets-count")
+    public ResponseEntity<Map<String, Long>> soldTicketsCount(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("soldCount", ticketService.countByEventId(id)));
+    }
+
     @Operation(summary = "Фильтрация по статусу", description = "Возвращает список событий с указанным статусом")
+    @SecurityRequirements
     @GetMapping("/filter")
     public ResponseEntity<List<EventResponseDto>> filterByStatus(@RequestParam EventStatus status) {
         return ResponseEntity.ok(eventService.getEventsByStatus(status));
@@ -72,6 +88,7 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Данные обновлены"),
             @ApiResponse(responseCode = "404", description = "Мероприятие для обновления не найдено")
     })
+    @PreAuthorize("@eventAuth.canMutateByEventId(#id, authentication)")
     @PutMapping("/{id}")
     public ResponseEntity<EventResponseDto> update(@PathVariable Long id,
                                                    @Valid @RequestBody EventRequestDto requestDto) {
@@ -80,6 +97,7 @@ public class EventController {
 
     @Operation(summary = "Удалить мероприятие")
     @ApiResponse(responseCode = "204", description = "Мероприятие удалено")
+    @PreAuthorize("@eventAuth.canMutateByEventId(#id, authentication)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         eventService.deleteEvent(id);
@@ -87,6 +105,7 @@ public class EventController {
     }
 
     @Operation(summary = "Частичное обновление: изменить статус")
+    @PreAuthorize("@eventAuth.canMutateByEventId(#id, authentication)")
     @PatchMapping("/{id}/status")
     public ResponseEntity<EventResponseDto> changeStatus(
             @PathVariable Long id,
@@ -96,6 +115,7 @@ public class EventController {
 
     @Operation(summary = "Расширенный поиск с пагинацией",
             description = "Поиск по категории, минимальной цене и организатору")
+    @SecurityRequirements
     @GetMapping("/search")
     public ResponseEntity<Page<EventResponseDto>> search(
             @RequestParam(name = "category", required = false) String category,

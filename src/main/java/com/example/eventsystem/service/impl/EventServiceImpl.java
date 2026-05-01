@@ -8,10 +8,12 @@ import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Organizer;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
+import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.EventSearchCacheIndex;
 import com.example.eventsystem.service.EventService;
 import com.example.eventsystem.exception.ResourceNotFoundException;
@@ -20,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +50,7 @@ public class EventServiceImpl implements EventService {
         Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Organizer not found with id: " + requestDto.getOrganizerId()));
+        assertCanManageOrganizer(organizer.getId());
 
         Event event = eventMapper.toEntity(requestDto);
 
@@ -83,6 +88,7 @@ public class EventServiceImpl implements EventService {
     public EventResponseDto updateStatus(Long id, EventStatus newStatus) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
+        assertCanManageOrganizer(event.getOrganizer().getId());
         event.setStatus(newStatus);
         return eventMapper.toResponseDto(eventRepository.save(event));
     }
@@ -92,6 +98,7 @@ public class EventServiceImpl implements EventService {
     public EventResponseDto updateEvent(Long id, EventRequestDto requestDto) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
+        assertCanManageOrganizer(event.getOrganizer().getId());
 
         event.setName(requestDto.getName());
         event.setStartDate(requestDto.getStartDate());
@@ -102,6 +109,7 @@ public class EventServiceImpl implements EventService {
         if (requestDto.getOrganizerId() != null) {
             Organizer organizer = organizerRepository.findById(requestDto.getOrganizerId())
                     .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
+            assertCanManageOrganizer(organizer.getId());
             event.setOrganizer(organizer);
         }
 
@@ -120,6 +128,7 @@ public class EventServiceImpl implements EventService {
     public void deleteEvent(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
+        assertCanManageOrganizer(event.getOrganizer().getId());
 
         if (event.getStatus() == EventStatus.COMPLETED) {
             throw new ConflictException("Cannot delete finished event");
@@ -168,6 +177,25 @@ public class EventServiceImpl implements EventService {
         cacheIndex.put(key, resultPage);
 
         return resultPage;
+    }
+
+    private void assertCanManageOrganizer(Long organizerId) {
+        if (organizerId == null) {
+            throw new ValidationException("Organizer id must not be null");
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            throw new ValidationException("Not authenticated");
+        }
+        if (principal.getRole() == AppRole.ADMIN) {
+            return;
+        }
+        if (principal.getRole() != AppRole.ORGANIZER) {
+            throw new ValidationException("Only ORGANIZER or ADMIN can manage events");
+        }
+        if (principal.getOrganizerId() == null || !principal.getOrganizerId().equals(organizerId)) {
+            throw new ValidationException("You cannot manage events for this organizer profile");
+        }
     }
 
 }

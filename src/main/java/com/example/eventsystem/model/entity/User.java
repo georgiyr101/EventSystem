@@ -9,6 +9,11 @@ import jakarta.persistence.Table;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import com.example.eventsystem.model.enums.AppRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,6 +40,24 @@ public class User {
     private String email;
 
     private String fullName;
+
+    /**
+     * BCrypt hash. May be null for legacy rows created before auth was introduced.
+     */
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AppRole role = AppRole.USER;
+
+    /**
+     * Organizer profile linked to this account (only for ORGANIZER users).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizer_id")
+    private Organizer organizerProfile;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default

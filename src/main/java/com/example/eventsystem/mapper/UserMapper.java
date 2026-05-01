@@ -21,6 +21,7 @@ public class UserMapper {
         if (user == null) {
             return null;
         }
-        return new UserResponseDto(user.getId(), user.getFullName(), user.getEmail());
+        Long organizerId = user.getOrganizerProfile() != null ? user.getOrganizerProfile().getId() : null;
+        return new UserResponseDto(user.getId(), user.getFullName(), user.getEmail(), user.getRole(), organizerId);
     }
 }

@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +44,7 @@ public class TicketController {
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "404", description = "User or event not found")
     })
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<TicketResponseDto> buy(@Valid @RequestBody TicketRequestDto requestDto) {
         return new ResponseEntity<>(ticketService.buyTicket(requestDto), HttpStatus.CREATED);
@@ -51,6 +53,7 @@ public class TicketController {
     @Operation(summary = "Bulk ticket purchase",
             description = "Purchases multiple tickets in a single request. "
                     + "With transactional=true operation is atomic, otherwise partial writes are possible.")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/bulk")
     public ResponseEntity<List<TicketResponseDto>> buyBulk(@Valid @RequestBody BulkTicketRequestDto requestDto,
                                                            @RequestParam(defaultValue = "true") boolean transactional) {
@@ -62,6 +65,7 @@ public class TicketController {
 
     @Operation(summary = "Start async bulk ticket purchase",
             description = "Starts asynchronous bulk purchase and returns task identifier")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/bulk/async")
     public ResponseEntity<AsyncTaskCreatedResponseDto> buyBulkAsync(
             @Valid @RequestBody BulkTicketRequestDto requestDto,
@@ -71,6 +75,7 @@ public class TicketController {
     }
 
     @Operation(summary = "Get async task status")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<BulkTicketTaskStatusResponseDto> getTaskStatus(@PathVariable String taskId) {
         return ResponseEntity.ok(ticketAsyncService.getTaskStatus(taskId));
@@ -81,21 +86,18 @@ public class TicketController {
             @ApiResponse(responseCode = "200", description = "Ticket found"),
             @ApiResponse(responseCode = "404", description = "Ticket not found")
     })
+    @PreAuthorize("@ticketAuth.canAccessTicket(#id, authentication)")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ticketService.getById(id));
     }
 
     @Operation(summary = "Search tickets")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<List<TicketResponseDto>> getTickets(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String barcode) {
-
-        if (userId == null && barcode == null) {
-            return ResponseEntity.ok(ticketService.getAllTickets());
-        }
-
         return ResponseEntity.ok(ticketService.getTickets(userId, barcode));
     }
 
@@ -105,6 +107,7 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Ticket not found"),
             @ApiResponse(responseCode = "400", description = "Validation error")
     })
+    @PreAuthorize("@ticketAuth.canAccessTicket(#id, authentication)")
     @PutMapping("/{id}")
     public ResponseEntity<TicketResponseDto> update(@PathVariable Long id,
                                                     @Valid @RequestBody TicketRequestDto requestDto) {
@@ -116,6 +119,7 @@ public class TicketController {
             @ApiResponse(responseCode = "204", description = "Ticket deleted"),
             @ApiResponse(responseCode = "404", description = "Ticket not found")
     })
+    @PreAuthorize("@ticketAuth.canAccessTicket(#id, authentication)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ticketService.delete(id);

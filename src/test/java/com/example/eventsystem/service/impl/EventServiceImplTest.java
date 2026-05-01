@@ -9,17 +9,23 @@ import com.example.eventsystem.model.dto.EventResponseDto;
 import com.example.eventsystem.model.entity.Category;
 import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Organizer;
+import com.example.eventsystem.model.entity.User;
+import com.example.eventsystem.model.enums.AppRole;
 import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.CategoryRepository;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
+import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.EventSearchCacheIndex;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +47,11 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceImplTest {
+
+    @AfterEach
+    void tearDownSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Mock
     private EventRepository eventRepository;
@@ -67,6 +78,7 @@ class EventServiceImplTest {
 
     @Test
     void createEvent_shouldThrowWhenOrganizerNotFound() {
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
 
         when(organizerRepository.findById(5L)).thenReturn(Optional.empty());
@@ -76,6 +88,7 @@ class EventServiceImplTest {
 
     @Test
     void createEvent_shouldSetPlannedStatusAndCategoriesAndClearCache() {
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
         Organizer organizer = Organizer.builder().id(5L).name("Org").build();
         Event mapped = Event.builder().name("Meetup").build();
@@ -99,6 +112,7 @@ class EventServiceImplTest {
 
     @Test
     void createEvent_shouldWorkWhenCategoryIdsAreNull() {
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
         request.setCategoryIds(null);
         Organizer organizer = Organizer.builder().id(5L).name("Org").build();
@@ -119,6 +133,7 @@ class EventServiceImplTest {
 
     @Test
     void createEvent_shouldWorkWhenCategoryIdsAreEmpty() {
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
         request.setCategoryIds(List.of());
         Organizer organizer = Organizer.builder().id(5L).name("Org").build();
@@ -146,7 +161,9 @@ class EventServiceImplTest {
 
     @Test
     void updateStatus_shouldSaveNewStatus() {
-        Event event = Event.builder().id(3L).status(EventStatus.PLANNED).build();
+        Organizer org = Organizer.builder().id(5L).name("O").build();
+        loginAsOrganizer(5L);
+        Event event = Event.builder().id(3L).status(EventStatus.PLANNED).organizer(org).build();
         EventResponseDto response = EventResponseDto.builder().id(3L).statusCode("COMPLETED").build();
 
         when(eventRepository.findById(3L)).thenReturn(Optional.of(event));
@@ -168,11 +185,12 @@ class EventServiceImplTest {
 
     @Test
     void updateEvent_shouldUpdateFieldsOrganizerCategoriesAndClearCache() {
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
         request.setName("Updated");
         request.setCategoryIds(List.of(1L, 2L));
         Organizer organizer = Organizer.builder().id(5L).name("Org").build();
-        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).organizer(organizer).build();
         EventResponseDto response = EventResponseDto.builder().id(8L).name("Updated").build();
 
         when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
@@ -194,10 +212,12 @@ class EventServiceImplTest {
 
     @Test
     void updateEvent_shouldSkipOrganizerAndCategoriesWhenNull() {
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
         request.setOrganizerId(null);
         request.setCategoryIds(null);
-        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).organizer(organizer).build();
         EventResponseDto response = EventResponseDto.builder().id(8L).name("Meetup").build();
 
         when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
@@ -213,8 +233,10 @@ class EventServiceImplTest {
 
     @Test
     void updateEvent_shouldThrowWhenOrganizerMissing() {
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        loginAsOrganizer(5L);
         EventRequestDto request = requestDto();
-        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).build();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).organizer(organizer).build();
 
         when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
         when(organizerRepository.findById(5L)).thenReturn(Optional.empty());
@@ -224,7 +246,9 @@ class EventServiceImplTest {
 
     @Test
     void deleteEvent_shouldThrowWhenCompleted() {
-        Event event = Event.builder().id(4L).status(EventStatus.COMPLETED).build();
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        loginAsOrganizer(5L);
+        Event event = Event.builder().id(4L).status(EventStatus.COMPLETED).organizer(organizer).build();
         when(eventRepository.findById(4L)).thenReturn(Optional.of(event));
 
         assertThrows(ConflictException.class, () -> eventService.deleteEvent(4L));
@@ -233,7 +257,9 @@ class EventServiceImplTest {
 
     @Test
     void deleteEvent_shouldDeleteAndClearCache() {
-        Event event = Event.builder().id(4L).status(EventStatus.PLANNED).build();
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        loginAsOrganizer(5L);
+        Event event = Event.builder().id(4L).status(EventStatus.PLANNED).organizer(organizer).build();
         when(eventRepository.findById(4L)).thenReturn(Optional.of(event));
 
         eventService.deleteEvent(4L);
@@ -336,5 +362,18 @@ class EventServiceImplTest {
         dto.setOrganizerId(5L);
         dto.setCategoryIds(List.of(7L));
         return dto;
+    }
+
+    private void loginAsOrganizer(long organizerProfileId) {
+        Organizer profile = Organizer.builder().id(organizerProfileId).name("Test Org").build();
+        User user = User.builder()
+                .id(1L)
+                .email("org@example.com")
+                .role(AppRole.ORGANIZER)
+                .organizerProfile(profile)
+                .build();
+        UserPrincipal principal = new UserPrincipal(user);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
     }
 }
