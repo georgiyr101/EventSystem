@@ -44,7 +44,6 @@ public class RestAuthHandlers {
                 request.getRequestURI(),
                 null
         );
-        // ErrorResponse uses timestamp in constructor? check class
         objectMapper.writeValue(response.getOutputStream(), body);
     }
 }
