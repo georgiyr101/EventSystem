@@ -12,6 +12,7 @@ import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Ticket;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.model.enums.AppRole;
+import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
@@ -26,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -288,8 +290,14 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void delete_shouldDeleteWhenExists() {
-        when(ticketRepository.existsById(5L)).thenReturn(true);
+    void delete_shouldDeleteWhenExistsForUserBeforeEventStart() {
+        loginAsUser(10L);
+        Event event = event(100L, 10);
+        event.setStatus(EventStatus.PLANNED);
+        event.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(event).build();
+
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
 
         ticketService.delete(5L);
 
@@ -298,9 +306,38 @@ class TicketServiceImplTest {
 
     @Test
     void delete_shouldThrowWhenMissing() {
-        when(ticketRepository.existsById(5L)).thenReturn(false);
+        loginAsUser(10L);
+        when(ticketRepository.findById(5L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> ticketService.delete(5L));
+        verify(ticketRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void delete_shouldThrowConflictWhenEventAlreadyStartedForUser() {
+        loginAsUser(10L);
+        Event event = event(100L, 10);
+        event.setStatus(EventStatus.PLANNED);
+        event.setStartDate(LocalDateTime.now().minusHours(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(event).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        assertThrows(ConflictException.class, () -> ticketService.delete(5L));
+        verify(ticketRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void delete_shouldAllowAdminDespiteStartedEvent() {
+        loginAsAdmin();
+        Event event = event(100L, 10);
+        event.setStatus(EventStatus.PLANNED);
+        event.setStartDate(LocalDateTime.now().minusHours(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(event).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        ticketService.delete(5L);
+
+        verify(ticketRepository).deleteById(5L);
     }
 
     @Test

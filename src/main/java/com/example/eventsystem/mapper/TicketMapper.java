@@ -21,6 +21,9 @@ public class TicketMapper {
             dto.setEventId(ticket.getEvent().getId());
             dto.setEventName(ticket.getEvent().getName());
             dto.setEventStartDate(ticket.getEvent().getStartDate());
+            if (ticket.getEvent().getStatus() != null) {
+                dto.setEventStatusCode(ticket.getEvent().getStatus().name());
+            }
         }
 
         if (ticket.getUser() != null) {

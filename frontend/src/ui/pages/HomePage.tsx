@@ -207,14 +207,34 @@ export function HomePage() {
           }}
         >
           {preview.map((e) => (
-            <Card key={e.id} variant="outlined" sx={{ height: "100%", borderColor: "rgba(15,23,42,0.08)" }}>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h6" sx={{ lineHeight: 1.25 }}>
+            <Card
+              key={e.id}
+              variant="outlined"
+              sx={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                borderColor: "rgba(15,23,42,0.08)",
+              }}
+            >
+              <CardContent sx={{ flex: "1 1 auto", display: "flex", flexDirection: "column" }}>
+                <Stack spacing={1} sx={{ flex: "1 1 auto" }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        lineHeight: 1.25,
+                        flex: "1 1 auto",
+                        minWidth: 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
                       {e.name}
                     </Typography>
-                    <Chip size="small" label={eventStatusLabel(e)} />
+                    <Chip size="small" label={eventStatusLabel(e)} sx={{ flexShrink: 0 }} />
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
                     {e.organizerName}
@@ -224,7 +244,7 @@ export function HomePage() {
                   </Typography>
                 </Stack>
               </CardContent>
-              <CardActions sx={{ px: 2, pb: 2 }}>
+              <CardActions sx={{ px: 2, pb: 2, pt: 0, mt: "auto" }}>
                 <Button component={RouterLink} to={`/events/${e.id}`} variant="contained" fullWidth>
                   Подробнее
                 </Button>

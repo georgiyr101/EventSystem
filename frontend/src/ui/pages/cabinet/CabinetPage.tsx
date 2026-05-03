@@ -1,16 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Card, CardContent, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { Link as RouterLink, Navigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authUpdateProfile } from "../../../api/auth";
 import { listCategories } from "../../../api/categories";
 import { createEvent, deleteEvent, listEvents, updateEvent } from "../../../api/events";
 import { getOrganizerById } from "../../../api/organizers";
-import { listTickets } from "../../../api/tickets";
+import { deleteTicket, listTickets } from "../../../api/tickets";
 import type { AppRole, EventRequestDto, EventResponseDto } from "../../../api/types";
 import { useAuth } from "../../../auth/AuthContext";
 import { ErrorAlert } from "../../components/ErrorAlert";
 import { formatDateTimeRu, formatPriceBr } from "../../format";
+import { userMayReturnTicketByRules } from "../../ticketReturn";
 import { EventFormDialog } from "../events/EventFormDialog";
 
 function allowedTabs(role: AppRole): string[] {
@@ -149,16 +164,30 @@ export function CabinetPage() {
 }
 
 function CabinetTicketsPanel() {
+  const { profile } = useAuth();
+  const qc = useQueryClient();
+  const [confirmReturnId, setConfirmReturnId] = useState<number | null>(null);
+
   const ticketsQuery = useQuery({
     queryKey: ["tickets", "mine"],
     queryFn: () => listTickets(),
   });
 
+  const returnMut = useMutation({
+    mutationFn: (id: number) => deleteTicket(id),
+    onSuccess: async () => {
+      setConfirmReturnId(null);
+      await qc.invalidateQueries({ queryKey: ["tickets"] });
+    },
+  });
+
   const rows = ticketsQuery.data ?? [];
+  const isAdmin = profile?.role === "ADMIN";
 
   return (
     <Stack spacing={2}>
       <ErrorAlert error={ticketsQuery.error} />
+      <ErrorAlert error={returnMut.error} />
       <Box
         sx={{
           display: "grid",
@@ -166,38 +195,79 @@ function CabinetTicketsPanel() {
           gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
         }}
       >
-        {rows.map((t) => (
-          <Card key={t.id} variant="outlined" sx={{ borderColor: "rgba(15,23,42,0.08)", borderRadius: 2 }}>
-            <CardContent>
-              <Stack spacing={0.75}>
-                <Typography variant="h6" sx={{ lineHeight: 1.25 }}>
-                  {t.eventName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Дата события: {formatDateTimeRu(t.eventStartDate)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Номер билета: {t.barcode}
-                </Typography>
-                <Button
-                  component={RouterLink}
-                  to={`/events/${t.eventId}`}
-                  variant="text"
-                  size="small"
-                  sx={{ alignSelf: "flex-start", px: 0 }}
-                >
-                  Страница события
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        ))}
+        {rows.map((t) => {
+          const mayReturn = isAdmin || userMayReturnTicketByRules(t);
+          return (
+            <Card key={t.id} variant="outlined" sx={{ borderColor: "rgba(15,23,42,0.08)", borderRadius: 2 }}>
+              <CardContent>
+                <Stack spacing={0.75}>
+                  <Typography variant="h6" sx={{ lineHeight: 1.25 }}>
+                    {t.eventName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Дата события: {formatDateTimeRu(t.eventStartDate)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Номер билета: {t.barcode}
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ pt: 0.5 }}>
+                    <Button
+                      component={RouterLink}
+                      to={`/events/${t.eventId}`}
+                      variant="text"
+                      size="small"
+                      sx={{ px: 0 }}
+                    >
+                      Страница события
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      size="small"
+                      disabled={!mayReturn || returnMut.isPending}
+                      onClick={() => setConfirmReturnId(t.id)}
+                    >
+                      Вернуть билет
+                    </Button>
+                  </Stack>
+                  {!mayReturn && (
+                    <Typography variant="caption" color="text.secondary">
+                      Возврат недоступен: мероприятие уже началось или завершено.
+                    </Typography>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          );
+        })}
         {rows.length === 0 && !ticketsQuery.isLoading && (
           <Typography color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
             Пока нет билетов — выберите событие в каталоге.
           </Typography>
         )}
       </Box>
+
+      <Dialog open={confirmReturnId != null} onClose={() => !returnMut.isPending && setConfirmReturnId(null)}>
+        <DialogTitle>Вернуть билет?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Билет будет аннулирован, место на мероприятии снова станет доступно для продажи. Это действие нельзя отменить.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmReturnId(null)} disabled={returnMut.isPending}>
+            Отмена
+          </Button>
+          <Button
+            color="warning"
+            variant="contained"
+            disabled={returnMut.isPending || confirmReturnId == null}
+            onClick={() => confirmReturnId != null && returnMut.mutate(confirmReturnId)}
+          >
+            Вернуть
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

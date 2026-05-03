@@ -87,6 +87,8 @@ export interface TicketResponseDto {
   eventName: string;
   /** ISO date-time from API when available */
   eventStartDate?: string | null;
+  /** Event status: PLANNED, ONGOING, COMPLETED, … */
+  eventStatusCode?: string | null;
   userId: Id;
   userEmail: string;
   barcode: string;

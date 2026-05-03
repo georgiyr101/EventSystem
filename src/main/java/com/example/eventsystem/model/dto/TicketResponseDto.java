@@ -25,6 +25,9 @@ public class TicketResponseDto {
     @Schema(description = "Дата и время начала мероприятия")
     private LocalDateTime eventStartDate;
 
+    @Schema(description = "Код статуса мероприятия (PLANNED, ONGOING, …)")
+    private String eventStatusCode;
+
     @Schema(description = "Идентификатор пользователя", example = "7")
     private Long userId;
 

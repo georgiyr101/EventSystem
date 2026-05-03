@@ -12,6 +12,7 @@ import com.example.eventsystem.model.entity.Event;
 import com.example.eventsystem.model.entity.Ticket;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.model.enums.AppRole;
+import com.example.eventsystem.model.enums.EventStatus;
 import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.TicketRepository;
 import com.example.eventsystem.repository.UserRepository;
@@ -122,10 +123,34 @@ public class TicketServiceImpl implements TicketService {
 
     @Transactional
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Cannot delete: Ticket not found with id: " + id);
+        Ticket ticket = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot delete: Ticket not found with id: " + id));
+        if (!isAdminPrincipal()) {
+            validateUserMayReturnTicket(ticket);
         }
         repository.deleteById(id);
+    }
+
+    private boolean isAdminPrincipal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.getPrincipal() instanceof UserPrincipal principal
+                && principal.getRole() == AppRole.ADMIN;
+    }
+
+    private void validateUserMayReturnTicket(Ticket ticket) {
+        Event event = ticket.getEvent();
+        if (event == null) {
+            throw new ValidationException("Ticket has no event");
+        }
+        EventStatus status = event.getStatus();
+        if (status == EventStatus.COMPLETED || status == EventStatus.ONGOING) {
+            throw new ConflictException("Cannot return ticket for this event status");
+        }
+        LocalDateTime start = event.getStartDate();
+        if (start != null && !LocalDateTime.now().isBefore(start)) {
+            throw new ConflictException("Cannot return ticket after the event has started");
+        }
     }
 
     @Override

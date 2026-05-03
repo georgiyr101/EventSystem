@@ -24,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
 
+    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -37,25 +38,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring("Bearer ".length()).trim();
-        try {
-            Claims claims = jwtService.parseClaims(token);
-            String email = claims.get("email", String.class);
-            if (email == null || email.isBlank()) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        Claims claims = jwtService.parseClaims(token);
+        String email = claims.get("email", String.class);
+        if (email == null || email.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            // Bind principal if SecurityContext is empty
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        } catch (Exception ignored) {
-            // Invalid token -> proceed unauthenticated; secured endpoints will return 401/403 via security config
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);

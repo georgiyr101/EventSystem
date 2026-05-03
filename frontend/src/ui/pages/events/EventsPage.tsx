@@ -8,6 +8,7 @@ import {
   CardContent,
   Chip,
   Divider,
+  Pagination,
   Paper,
   Stack,
   TextField,
@@ -39,6 +40,8 @@ function startOfDay(d: Date) {
   return copy;
 }
 
+const EVENTS_PAGE_SIZE = 10;
+
 function useUrlState() {
   const [sp, setSp] = useSearchParams();
   const get = (k: string) => sp.get(k) ?? "";
@@ -57,14 +60,20 @@ function useUrlState() {
     }
     setSp(next, { replace: true });
   };
-  return { get, set, getAll, setMany };
+
+  const patch = (fn: (next: URLSearchParams) => void) => {
+    const next = new URLSearchParams(sp);
+    fn(next);
+    setSp(next, { replace: true });
+  };
+  return { get, set, getAll, setMany, patch };
 }
 
 export function EventsPage() {
   const qc = useQueryClient();
   const { profile } = useAuth();
   const isAdmin = profile?.role === "ADMIN";
-  const { get, set, getAll, setMany } = useUrlState();
+  const { get, set, getAll, patch } = useUrlState();
 
   const q = get("q");
   const categoryNames = getAll("category");
@@ -146,6 +155,19 @@ export function EventsPage() {
     });
   }, [baseRows, q, minPrice, maxPrice, dateFrom, categoriesUrlKey]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / EVENTS_PAGE_SIZE));
+  const pageRaw = parseInt(get("page") || "1", 10);
+  const pageNum = Math.min(
+    Math.max(1, Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1),
+    totalPages,
+  );
+  const pageSliceStart = (pageNum - 1) * EVENTS_PAGE_SIZE;
+  const paginatedRows = filteredRows.slice(pageSliceStart, pageSliceStart + EVENTS_PAGE_SIZE);
+  const rangeLabel =
+    filteredRows.length === 0
+      ? "0 из 0"
+      : `${pageSliceStart + 1}–${pageSliceStart + paginatedRows.length} из ${filteredRows.length}`;
+
   const hasLookupData =
     isAdmin && (organizersQuery.data?.length ?? 0) > 0 && (categoriesQuery.data?.length ?? 0) > 0;
 
@@ -159,11 +181,14 @@ export function EventsPage() {
   const datePickerValue: Dayjs | null = dateFrom ? dayjs(dateFrom) : null;
 
   const resetFilters = () => {
-    set("q", "");
-    setMany("category", []);
-    set("minPrice", "");
-    set("maxPrice", "");
-    set("dateFrom", "");
+    patch((next) => {
+      next.delete("q");
+      next.delete("category");
+      next.delete("minPrice");
+      next.delete("maxPrice");
+      next.delete("dateFrom");
+      next.set("page", "1");
+    });
   };
 
   return (
@@ -192,7 +217,14 @@ export function EventsPage() {
           size="small"
           label="Поиск событий"
           value={q}
-          onChange={(e) => set("q", e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            patch((next) => {
+              if (!v) next.delete("q");
+              else next.set("q", v);
+              next.set("page", "1");
+            });
+          }}
           placeholder="Название…"
           sx={{ flex: "1 1 160px", minWidth: 140 }}
         />
@@ -203,14 +235,29 @@ export function EventsPage() {
           getOptionLabel={(o) => o.name}
           loading={categoriesQuery.isLoading}
           value={selectedCategories}
-          onChange={(_, v) => setMany("category", v.map((c) => c.name))}
+          onChange={(_, v) => {
+            patch((next) => {
+              next.delete("category");
+              for (const c of v) {
+                if (c.name) next.append("category", c.name);
+              }
+              next.set("page", "1");
+            });
+          }}
           renderInput={(params) => <TextField {...params} label="Категории" placeholder="IT, Music…" />}
           sx={{ flex: "1 1 220px", minWidth: 200, maxWidth: 360 }}
         />
         <DatePicker
           label="Начиная с даты"
           value={datePickerValue}
-          onChange={(v) => set("dateFrom", v && v.isValid() ? v.format("YYYY-MM-DD") : "")}
+          onChange={(v) => {
+            const d = v && v.isValid() ? v.format("YYYY-MM-DD") : "";
+            patch((next) => {
+              if (!d) next.delete("dateFrom");
+              else next.set("dateFrom", d);
+              next.set("page", "1");
+            });
+          }}
           slotProps={{
             textField: {
               size: "small",
@@ -228,7 +275,14 @@ export function EventsPage() {
           label="Мин. цена"
           type="number"
           value={minPrice}
-          onChange={(e) => set("minPrice", e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            patch((next) => {
+              if (!v) next.delete("minPrice");
+              else next.set("minPrice", v);
+              next.set("page", "1");
+            });
+          }}
           sx={{ width: 112 }}
         />
         <TextField
@@ -236,7 +290,14 @@ export function EventsPage() {
           label="Макс. цена"
           type="number"
           value={maxPrice}
-          onChange={(e) => set("maxPrice", e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            patch((next) => {
+              if (!v) next.delete("maxPrice");
+              else next.set("maxPrice", v);
+              next.set("page", "1");
+            });
+          }}
           sx={{ width: 112 }}
         />
         <Button size="small" variant="text" color="inherit" onClick={resetFilters} sx={{ flexShrink: 0 }}>
@@ -256,7 +317,12 @@ export function EventsPage() {
 
       <Paper sx={{ p: 2 }}>
         <Stack spacing={1}>
-          <Typography variant="subtitle1">Найденные мероприятия</Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+            <Typography variant="subtitle1">Найденные мероприятия</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {rangeLabel}
+            </Typography>
+          </Stack>
           <Divider />
           <Box
             sx={{
@@ -266,7 +332,7 @@ export function EventsPage() {
               gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
             }}
           >
-            {filteredRows.map((e) => (
+            {paginatedRows.map((e) => (
               <Card key={e.id} variant="outlined" sx={{ height: "100%", borderColor: "rgba(15,23,42,0.08)" }}>
                 <CardContent>
                   <Stack spacing={1}>
@@ -344,6 +410,19 @@ export function EventsPage() {
               </Typography>
             )}
           </Box>
+          {filteredRows.length > EVENTS_PAGE_SIZE && (
+            <Stack alignItems="center" sx={{ pt: 1 }}>
+              <Pagination
+                color="primary"
+                count={totalPages}
+                page={pageNum}
+                onChange={(_, value) => set("page", String(value))}
+                size="small"
+                showFirstButton
+                showLastButton
+              />
+            </Stack>
+          )}
         </Stack>
       </Paper>
 
