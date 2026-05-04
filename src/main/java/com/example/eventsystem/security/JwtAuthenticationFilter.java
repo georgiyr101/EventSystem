@@ -24,7 +24,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
 
-    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
