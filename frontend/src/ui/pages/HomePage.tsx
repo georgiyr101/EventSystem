@@ -116,7 +116,6 @@ export function HomePage() {
           Найдите мероприятие за несколько секунд
         </Typography>
         <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-          Укажите условия — откроется каталог с теми же фильтрами.
         </Typography>
       </Box>
 
