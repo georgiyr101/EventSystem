@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -8,6 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Stack,
   Tab,
   Tabs,
@@ -21,7 +22,7 @@ import { listCategories } from "../../../api/categories";
 import { createEvent, deleteEvent, listEvents, updateEvent } from "../../../api/events";
 import { getOrganizerById } from "../../../api/organizers";
 import { deleteTicket, listTickets } from "../../../api/tickets";
-import type { AppRole, EventRequestDto, EventResponseDto } from "../../../api/types";
+import type { AppRole, EventRequestDto, EventResponseDto, TicketResponseDto } from "../../../api/types";
 import { useAuth } from "../../../auth/AuthContext";
 import { ErrorAlert } from "../../components/ErrorAlert";
 import { formatDateTimeRu, formatPriceBr } from "../../format";
@@ -29,7 +30,7 @@ import { userMayReturnTicketByRules } from "../../ticketReturn";
 import { EventFormDialog } from "../events/EventFormDialog";
 
 function allowedTabs(role: AppRole): string[] {
-  if (role === "ORGANIZER") return ["events", "create", "profile"];
+  if (role === "ORGANIZER") return ["events", "profile"];
   return ["tickets", "profile"];
 }
 
@@ -132,7 +133,6 @@ export function CabinetPage() {
         <Typography variant="h4" sx={{ fontWeight: 750, letterSpacing: -0.3, mb: 0.5 }}>
           Личный кабинет
         </Typography>
-        <Typography color="text.secondary">Управляйте билетами, событиями и данными профиля.</Typography>
       </Box>
 
       <Tabs
@@ -147,7 +147,6 @@ export function CabinetPage() {
       >
         {(profile.role === "USER" || profile.role === "ADMIN") && <Tab label="Билеты" value="tickets" />}
         {profile.role === "ORGANIZER" && <Tab label="Мои события" value="events" />}
-        {profile.role === "ORGANIZER" && <Tab label="Создать" value="create" />}
         <Tab label="Профиль" value="profile" />
       </Tabs>
 
@@ -156,7 +155,6 @@ export function CabinetPage() {
           <CabinetTicketsPanel />
         )}
         {activeTab === "events" && profile.role === "ORGANIZER" && <CabinetOrganizerEventsPanel />}
-        {activeTab === "create" && profile.role === "ORGANIZER" && <CabinetOrganizerCreatePanel />}
         {activeTab === "profile" && <CabinetProfilePanel />}
       </Box>
     </Stack>
@@ -184,68 +182,103 @@ function CabinetTicketsPanel() {
   const rows = ticketsQuery.data ?? [];
   const isAdmin = profile?.role === "ADMIN";
 
+  type TicketGroup = {
+    eventId: number;
+    eventName: string;
+    eventStartDate: string | null | undefined;
+    tickets: TicketResponseDto[];
+  };
+
+  const groups = useMemo(() => {
+    const m = new Map<number, TicketGroup>();
+    for (const t of rows) {
+      let g = m.get(t.eventId);
+      if (!g) {
+        g = { eventId: t.eventId, eventName: t.eventName, eventStartDate: t.eventStartDate, tickets: [] };
+        m.set(t.eventId, g);
+      }
+      g.tickets.push(t);
+    }
+    return [...m.values()].sort((a, b) => {
+      const da = a.eventStartDate ? new Date(a.eventStartDate).getTime() : 0;
+      const db = b.eventStartDate ? new Date(b.eventStartDate).getTime() : 0;
+      return da - db;
+    });
+  }, [rows]);
+
   return (
     <Stack spacing={2}>
       <ErrorAlert error={ticketsQuery.error} />
       <ErrorAlert error={returnMut.error} />
-      <Box
-        sx={{
-          display: "grid",
-          gap: 2,
-          gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
-        }}
-      >
-        {rows.map((t) => {
-          const mayReturn = isAdmin || userMayReturnTicketByRules(t);
-          return (
-            <Card key={t.id} variant="outlined" sx={{ borderColor: "rgba(15,23,42,0.08)", borderRadius: 2 }}>
-              <CardContent>
-                <Stack spacing={0.75}>
-                  <Typography variant="h6" sx={{ lineHeight: 1.25 }}>
-                    {t.eventName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Дата события: {formatDateTimeRu(t.eventStartDate)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Номер билета: {t.barcode}
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ pt: 0.5 }}>
-                    <Button
-                      component={RouterLink}
-                      to={`/events/${t.eventId}`}
-                      variant="text"
-                      size="small"
-                      sx={{ px: 0 }}
+      <Stack spacing={2}>
+        {groups.map((group) => (
+          <Card key={group.eventId} variant="outlined" sx={{ borderColor: "rgba(15,23,42,0.08)", borderRadius: 2 }}>
+            <CardContent>
+              <Stack spacing={0.5} sx={{ mb: 1.5 }}>
+                <Typography variant="h6" sx={{ lineHeight: 1.25 }}>
+                  {group.eventName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {formatDateTimeRu(group.eventStartDate)} · билетов: {group.tickets.length}
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to={`/events/${group.eventId}`}
+                  variant="text"
+                  size="small"
+                  sx={{ alignSelf: "flex-start", px: 0 }}
+                >
+                  Страница события
+                </Button>
+              </Stack>
+              <Divider sx={{ mb: 1.5 }} />
+              <Stack spacing={1.5}>
+                {group.tickets.map((t) => {
+                  const mayReturn = isAdmin || userMayReturnTicketByRules(t);
+                  return (
+                    <Box
+                      key={t.id}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: "action.hover",
+                      }}
                     >
-                      Страница события
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      size="small"
-                      disabled={!mayReturn || returnMut.isPending}
-                      onClick={() => setConfirmReturnId(t.id)}
-                    >
-                      Вернуть билет
-                    </Button>
-                  </Stack>
-                  {!mayReturn && (
-                    <Typography variant="caption" color="text.secondary">
-                      Возврат недоступен: мероприятие уже началось или завершено.
-                    </Typography>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          );
-        })}
+                      <Stack spacing={0.75}>
+                        <Typography variant="body2" color="text.secondary">
+                          Номер билета: <strong>{t.barcode}</strong>
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Куплен: {formatDateTimeRu(t.purchaseDate)}
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          <Button
+                            variant="outlined"
+                            color="warning"
+                            size="small"
+                            disabled={!mayReturn || returnMut.isPending}
+                            onClick={() => setConfirmReturnId(t.id)}
+                          >
+                            Вернуть билет
+                          </Button>
+                        </Stack>
+                        {!mayReturn && (
+                          <Typography variant="caption" color="text.secondary">
+                            Возврат недоступен: мероприятие уже началось или завершено.
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
         {rows.length === 0 && !ticketsQuery.isLoading && (
-          <Typography color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
-            Пока нет билетов — выберите событие в каталоге.
-          </Typography>
+          <Typography color="text.secondary">Пока нет билетов — выберите событие в каталоге.</Typography>
         )}
-      </Box>
+      </Stack>
 
       <Dialog open={confirmReturnId != null} onClose={() => !returnMut.isPending && setConfirmReturnId(null)}>
         <DialogTitle>Вернуть билет?</DialogTitle>
@@ -318,10 +351,38 @@ function CabinetOrganizerEventsPanel() {
   });
 
   const [edit, setEdit] = useState<{ id: number; dto: EventRequestDto } | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const categories = categoriesQuery.data ?? [];
   const organizersForForm = myOrganizer ? [myOrganizer] : [];
   const hasFormData = myOrganizer != null && categories.length > 0;
+
+  const defaultCreateDto = useMemo((): Partial<EventRequestDto> | undefined => {
+    if (!myOrganizer) return undefined;
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    const end = new Date(start);
+    end.setHours(end.getHours() + 2);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const toLocal = (d: Date) =>
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    return {
+      organizerId: myOrganizer.id,
+      categoryIds: categories[0]?.id ? [categories[0].id] : [],
+      startDate: toLocal(start),
+      endDate: toLocal(end),
+      maxParticipants: 50,
+      ticketPrice: 0,
+    };
+  }, [myOrganizer, categories]);
+
+  const createMut = useMutation({
+    mutationFn: createEvent,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["events"] });
+      setCreateOpen(false);
+    },
+  });
 
   return (
     <Stack spacing={2}>
@@ -330,7 +391,10 @@ function CabinetOrganizerEventsPanel() {
           Нужен профиль организатора и хотя бы одна категория. Категории создаёт администратор.
         </Typography>
       )}
-      <ErrorAlert error={organizerQuery.error || eventsQuery.error || categoriesQuery.error} />
+      <ErrorAlert error={organizerQuery.error || eventsQuery.error || categoriesQuery.error || createMut.error} />
+      <Button variant="contained" disabled={!hasFormData} onClick={() => setCreateOpen(true)} sx={{ alignSelf: "flex-start" }}>
+        Создать мероприятие
+      </Button>
       <Box
         sx={{
           display: "grid",
@@ -387,10 +451,22 @@ function CabinetOrganizerEventsPanel() {
         ))}
         {rows.length === 0 && (
           <Typography color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
-            Пока нет событий — создайте на вкладке «Создать».
+            Пока нет событий — нажмите «Создать мероприятие».
           </Typography>
         )}
       </Box>
+
+      <EventFormDialog
+        open={createOpen}
+        title="Новое событие"
+        organizers={organizersForForm}
+        categories={categories}
+        initial={defaultCreateDto ?? undefined}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={(dto) => createMut.mutate(dto)}
+        busy={createMut.isPending}
+        submitLabel="Создать"
+      />
 
       <EventFormDialog
         open={!!edit}
@@ -402,90 +478,6 @@ function CabinetOrganizerEventsPanel() {
         onSubmit={(dto) => edit && updateMut.mutate({ id: edit.id, dto })}
         busy={updateMut.isPending}
         submitLabel="Сохранить"
-      />
-    </Stack>
-  );
-}
-
-function CabinetOrganizerCreatePanel() {
-  const { profile } = useAuth();
-  const organizerId = profile?.organizerId ?? null;
-  const qc = useQueryClient();
-
-  const organizerQuery = useQuery({
-    queryKey: ["organizers", "mine", organizerId],
-    queryFn: () => getOrganizerById(organizerId!),
-    enabled: organizerId != null && organizerId > 0,
-  });
-
-  const categoriesQuery = useQuery({
-    queryKey: ["categories", "all"],
-    queryFn: () => listCategories(),
-  });
-
-  const myOrganizer = organizerQuery.data;
-  const categories = categoriesQuery.data ?? [];
-  const organizersForForm = myOrganizer ? [myOrganizer] : [];
-  const hasFormData = myOrganizer != null && categories.length > 0;
-
-  const defaultDto = useMemo((): Partial<EventRequestDto> | undefined => {
-    if (!myOrganizer) return undefined;
-    const start = new Date();
-    start.setDate(start.getDate() + 1);
-    const end = new Date(start);
-    end.setHours(end.getHours() + 2);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const toLocal = (d: Date) =>
-      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-    return {
-      organizerId: myOrganizer.id,
-      categoryIds: categories[0]?.id ? [categories[0].id] : [],
-      startDate: toLocal(start),
-      endDate: toLocal(end),
-      maxParticipants: 50,
-      ticketPrice: 0,
-    };
-  }, [myOrganizer, categories]);
-
-  const createMut = useMutation({
-    mutationFn: createEvent,
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["events"] });
-      setCreateOpen(false);
-    },
-  });
-
-  const [createOpen, setCreateOpen] = useState(false);
-
-  useEffect(() => {
-    setCreateOpen(true);
-  }, []);
-
-  return (
-    <Stack spacing={2}>
-      {!hasFormData && (
-        <Typography color="text.secondary">
-          Нужен профиль организатора и хотя бы одна категория в системе.
-        </Typography>
-      )}
-      <ErrorAlert error={organizerQuery.error || categoriesQuery.error} />
-      <Typography variant="body2" color="text.secondary">
-        Заполните форму мероприятия в диалоге ниже. После сохранения вы можете открыть её снова.
-      </Typography>
-      <Button variant="outlined" onClick={() => setCreateOpen(true)} disabled={!hasFormData} sx={{ alignSelf: "flex-start" }}>
-        Новое мероприятие
-      </Button>
-
-      <EventFormDialog
-        open={createOpen}
-        title="Новое событие"
-        organizers={organizersForForm}
-        categories={categories}
-        initial={defaultDto ?? undefined}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={(dto) => createMut.mutate(dto)}
-        busy={createMut.isPending}
-        submitLabel="Создать"
       />
     </Stack>
   );

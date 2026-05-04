@@ -196,7 +196,6 @@ export function EventsPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={1}>
         <Box>
           <Typography variant="h4">Мероприятия</Typography>
-          <Typography color="text.secondary">Каталог событий и удобные фильтры.</Typography>
         </Box>
         {isAdmin && (
           <Button variant="contained" onClick={() => setCreateOpen(true)} disabled={!hasLookupData}>

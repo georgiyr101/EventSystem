@@ -35,6 +35,15 @@ public class EventResponseDto {
     @Schema(description = "Цена билета", example = "49.99")
     private Double ticketPrice;
 
+    @Schema(description = "Максимум участников / билетов на событие")
+    private Integer maxParticipants;
+
+    @Schema(description = "Уже продано билетов (заполняется в детальной карточке события)")
+    private Long soldTicketsCount;
+
+    @Schema(description = "Идентификатор организатора")
+    private Long organizerId;
+
     @Schema(description = "Имя организатора", example = "Tech Community")
     private String organizerName;
 

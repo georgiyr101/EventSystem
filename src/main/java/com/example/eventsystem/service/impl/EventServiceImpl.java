@@ -16,6 +16,7 @@ import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.EventSearchCacheIndex;
 import com.example.eventsystem.service.EventService;
+import com.example.eventsystem.service.TicketService;
 import com.example.eventsystem.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class EventServiceImpl implements EventService {
     private final OrganizerRepository organizerRepository;
     private final CategoryRepository categoryRepository;
     private final EventSearchCacheIndex cacheIndex;
+    private final TicketService ticketService;
     private static final String EVENT_NOT_FOUND_MSG = "Event not found with id: ";
 
     @Override
@@ -70,9 +72,11 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public EventResponseDto getEventById(Long id) {
-        return eventRepository.findById(id)
+        EventResponseDto dto = eventRepository.findById(id)
                 .map(eventMapper::toResponseDto)
                 .orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + id));
+        dto.setSoldTicketsCount(ticketService.countByEventId(id));
+        return dto;
     }
 
     @Override

@@ -12,12 +12,13 @@ import {
   Paper,
   Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { changeEventStatus, getEventById } from "../../../api/events";
 import { getOrganizerById } from "../../../api/organizers";
-import { createTicket, listTickets } from "../../../api/tickets";
+import { buyTicketsBulk, listTickets } from "../../../api/tickets";
 import type { TicketResponseDto } from "../../../api/types";
 import { useAuth } from "../../../auth/AuthContext";
 import { ErrorAlert } from "../../components/ErrorAlert";
@@ -80,14 +81,21 @@ export function EventDetailsPage() {
     },
   });
 
+  const [ticketQty, setTicketQty] = React.useState(1);
+
   const buyMut = useMutation({
-    mutationFn: () =>
-      createTicket({
-        eventId,
-        barcode: randomBarcode(),
-      }),
+    mutationFn: (qty: number) => {
+      const base = randomBarcode();
+      const tickets = Array.from({ length: qty }, (_, i) => {
+        const suffix = String(i + 1).padStart(2, "0");
+        const barcode = `${base}-${suffix}`;
+        return { eventId, barcode: barcode.length > 20 ? barcode.slice(0, 20) : barcode };
+      });
+      return buyTicketsBulk({ userId: profile!.userId, tickets }, true);
+    },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["tickets"] });
+      await qc.invalidateQueries({ queryKey: ["events", "byId", eventId] });
     },
   });
 
@@ -95,12 +103,27 @@ export function EventDetailsPage() {
   const tickets: TicketResponseDto[] = ticketsQuery.data ?? [];
 
   const isMyEventAsOrganizer =
-    isOrganizer && e != null && myOrganizerQuery.data?.name === e.organizerName;
+    isOrganizer &&
+    e != null &&
+    (e.organizerId != null && myOrganizerId != null
+      ? e.organizerId === myOrganizerId
+      : myOrganizerQuery.data?.name === e.organizerName);
   const canChangeEventStatus = isAdmin || isMyEventAsOrganizer;
 
   const cannotBuy =
     e &&
     (e.statusCode === "SOLD_OUT" || e.statusCode === "COMPLETED" || e.statusCode === "CANCELLED");
+
+  const maxP = e?.maxParticipants;
+  const sold = e?.soldTicketsCount;
+  const remaining =
+    maxP != null && sold != null ? Math.max(0, maxP - Number(sold)) : null;
+  const maxSelectable = remaining != null ? Math.max(1, remaining) : 99;
+
+  React.useEffect(() => {
+    if (!e || !isUser) return;
+    setTicketQty((q) => Math.min(Math.max(1, q), maxSelectable));
+  }, [e?.id, isUser, maxSelectable]);
 
   return (
     <Stack spacing={2}>
@@ -133,17 +156,48 @@ export function EventDetailsPage() {
                 <Divider sx={{ my: 1 }} />
                 <Box>
                   <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                    Купить билет
+                    Купить билеты
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Номер билета сформируется автоматически после оплаты.
+                    {remaining != null && (
+                      <> Доступно мест: {remaining}.</>
+                    )}
                   </Typography>
-                  <Button variant="contained" disabled={buyMut.isPending || !!cannotBuy} onClick={() => buyMut.mutate()}>
-                    {buyMut.isPending ? "Покупка…" : "Купить билет"}
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
+                    <TextField
+                      type="number"
+                      size="small"
+                      inputProps={{ min: 1, max: maxSelectable, step: 1 }}
+                      value={ticketQty}
+                      onChange={(ev) => {
+                        const n = Number(ev.target.value);
+                        if (!Number.isFinite(n)) return;
+                        setTicketQty(Math.min(Math.max(1, Math.floor(n)), maxSelectable));
+                      }}
+                      sx={{ width: 120 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Сумма: {formatPriceBr(e.ticketPrice * ticketQty)}
+                    </Typography>
+                  </Stack>
+                  <Button
+                    variant="contained"
+                    sx={{ mt: 1 }}
+                    disabled={
+                      buyMut.isPending ||
+                      !!cannotBuy ||
+                      remaining === 0 ||
+                      (remaining != null && ticketQty > remaining)
+                    }
+                    onClick={() => buyMut.mutate(ticketQty)}
+                  >
+                    {buyMut.isPending ? "Покупка…" : ticketQty > 1 ? `Купить ${ticketQty} билетов` : "Купить билет"}
                   </Button>
-                  {buyMut.isSuccess && (
+                  {buyMut.isSuccess && buyMut.data && (
                     <Alert severity="success" sx={{ mt: 1 }}>
-                      Билет куплен. Смотрите раздел «Мои билеты» в меню профиля.
+                      {buyMut.data.length > 1
+                        ? `Куплено билетов: ${buyMut.data.length}. Они в разделе «Мои билеты».`
+                        : "Билет куплен. Смотрите раздел «Мои билеты» в меню профиля."}
                     </Alert>
                   )}
                 </Box>

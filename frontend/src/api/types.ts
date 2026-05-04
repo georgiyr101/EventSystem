@@ -55,6 +55,9 @@ export interface EventResponseDto {
   statusDescription: string;
   statusCode: EventStatusCode;
   ticketPrice: number;
+  maxParticipants?: number;
+  soldTicketsCount?: number;
+  organizerId?: Id;
   organizerName: string;
   categoryNames: string[];
 }

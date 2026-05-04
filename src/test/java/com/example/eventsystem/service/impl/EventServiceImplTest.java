@@ -17,6 +17,7 @@ import com.example.eventsystem.repository.EventRepository;
 import com.example.eventsystem.repository.OrganizerRepository;
 import com.example.eventsystem.security.UserPrincipal;
 import com.example.eventsystem.service.EventSearchCacheIndex;
+import com.example.eventsystem.service.TicketService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +64,8 @@ class EventServiceImplTest {
     private CategoryRepository categoryRepository;
     @Mock
     private EventSearchCacheIndex cacheIndex;
+    @Mock
+    private TicketService ticketService;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -157,6 +160,21 @@ class EventServiceImplTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> eventService.getEventById(3L));
+    }
+
+    @Test
+    void getEventById_shouldSetSoldTicketsCount() {
+        Event event = Event.builder().id(3L).status(EventStatus.PLANNED).build();
+        EventResponseDto dto = EventResponseDto.builder().id(3L).name("Meetup").build();
+
+        when(eventRepository.findById(3L)).thenReturn(Optional.of(event));
+        when(eventMapper.toResponseDto(event)).thenReturn(dto);
+        when(ticketService.countByEventId(3L)).thenReturn(12L);
+
+        EventResponseDto actual = eventService.getEventById(3L);
+
+        assertEquals(12L, actual.getSoldTicketsCount());
+        verify(ticketService).countByEventId(3L);
     }
 
     @Test
