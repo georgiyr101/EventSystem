@@ -6,6 +6,7 @@ COPY .mvn .mvn
 COPY pom.xml .
 RUN chmod +x mvnw && ./mvnw -B dependency:go-offline
 
+COPY config ./config
 COPY src ./src
 RUN ./mvnw -B package -DskipTests
 
@@ -15,7 +16,8 @@ WORKDIR /app
 RUN groupadd --system spring && useradd --system spring -g spring
 
 COPY --from=build /app/target/*.jar app.jar
-RUN chown spring:spring app.jar
+RUN mkdir -p /app/logs/archive \
+    && chown -R spring:spring /app
 
 USER spring:spring
 EXPOSE 8080
