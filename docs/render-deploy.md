@@ -53,3 +53,5 @@ docker compose up --build
 ```
 
 API: `http://localhost:8080` — health: `http://localhost:8080/actuator/health`.
+
+The same service also serves the React SPA from `/` (build is bundled into the JAR via Maven); the UI calls `/api/v1/...` on the same host.

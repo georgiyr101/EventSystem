@@ -21,6 +21,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 
 @Configuration
@@ -76,6 +78,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/concurrency/**").permitAll()
+                        .requestMatchers("/error", "/error/**").permitAll()
+                        .requestMatchers(SecurityConfig::permitsBrowserShellGet).permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(daoAuthenticationProvider)
@@ -95,5 +99,38 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    /**
+     * Allows unauthenticated GET for the SPA shell, static assets, and deep links. API and
+     * infrastructure paths stay behind the rules above.
+     */
+    private static boolean permitsBrowserShellGet(HttpServletRequest request) {
+        if (!HttpMethod.GET.matches(request.getMethod())) {
+            return false;
+        }
+        return !isBackendShellPath(normalizedPath(request));
+    }
+
+    private static String normalizedPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        if (path.isEmpty()) {
+            return "/";
+        }
+        if (!path.startsWith("/")) {
+            return "/" + path;
+        }
+        return path;
+    }
+
+    private static boolean isBackendShellPath(String path) {
+        return path.startsWith("/api")
+                || path.startsWith("/actuator")
+                || path.startsWith("/v3/")
+                || path.startsWith("/swagger-ui");
     }
 }

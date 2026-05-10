@@ -7,6 +7,7 @@ COPY pom.xml .
 RUN chmod +x mvnw && ./mvnw -B dependency:go-offline
 
 COPY config ./config
+COPY frontend ./frontend
 COPY src ./src
 RUN ./mvnw -B package -DskipTests
 
