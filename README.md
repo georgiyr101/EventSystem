@@ -58,7 +58,3 @@
 | GET | `/api/v1/events?status={name}` | Получить мероприятия с фильтром по конкретному статусу |
 | POST | `/api/v1/events` | Создать новое мероприятие |
 | PATCH | `/api/v1/events/{id}/status?newStatus={name}` | Изменить статус мероприятия |
-
-## Веб-интерфейс и деплой
-
-Сборка React (Vite) выполняется в фазе Maven `generate-resources` (`frontend-maven-plugin`), артефакты копируются в `classpath:/static`. Один и тот же процесс (например, один сервис на Render) отдаёт и REST API (`/api/...`), и SPA; клиент ходит в API по тому же origin (`/api/v1/...`). Локально: `cd frontend && npm run dev` — прокси на бэкенд в `vite.config.ts`.
