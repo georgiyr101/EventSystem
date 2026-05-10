@@ -49,12 +49,25 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    /**
+     * CSRF protection is intentionally off for this application.
+     * <p>
+     * Sonar&apos;s default advice targets server-rendered UIs that rely on session cookies; CSRF abuses
+     * the browser sending those cookies automatically. Here authentication is stateless JWT in the
+     * {@code Authorization} header, which the browser does not attach cross-site, so the classic CSRF
+     * vector does not apply. Spring Security documents that non-browser / stateless APIs often disable
+     * CSRF (see &quot;When to use CSRF protection&quot; in the Servlet CSRF chapter).
+     * <p>
+     * Mutating operations remain protected: clients must present a valid JWT; unsafe methods are not
+     * exposed as idempotent GETs for sensitive actions.
+     */
     @Bean
+    @SuppressWarnings("java:S4502")
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             DaoAuthenticationProvider daoAuthenticationProvider) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // NOSONAR java:S4502
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
