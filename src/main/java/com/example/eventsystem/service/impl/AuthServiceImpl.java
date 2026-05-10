@@ -111,7 +111,8 @@ public class AuthServiceImpl implements AuthService {
             if (!StringUtils.hasText(dto.getCurrentPassword())) {
                 throw new ValidationException("Current password is required to set a new password");
             }
-            if (user.getPasswordHash() == null || !passwordEncoder.matches(dto.getCurrentPassword(), user.getPasswordHash())) {
+            if (user.getPasswordHash() == null
+                    || !passwordEncoder.matches(dto.getCurrentPassword(), user.getPasswordHash())) {
                 throw new ValidationException("Current password is incorrect");
             }
             user.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));

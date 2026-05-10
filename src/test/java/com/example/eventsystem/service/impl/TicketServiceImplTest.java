@@ -9,6 +9,7 @@ import com.example.eventsystem.model.dto.BulkTicketRequestDto;
 import com.example.eventsystem.model.dto.TicketRequestDto;
 import com.example.eventsystem.model.dto.TicketResponseDto;
 import com.example.eventsystem.model.entity.Event;
+import com.example.eventsystem.model.entity.Organizer;
 import com.example.eventsystem.model.entity.Ticket;
 import com.example.eventsystem.model.entity.User;
 import com.example.eventsystem.model.enums.AppRole;
@@ -28,6 +29,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -243,6 +245,236 @@ class TicketServiceImplTest {
         List<TicketResponseDto> result = ticketService.getTickets(null, null);
 
         assertEquals(2, result.size());
+    }
+
+    @Test
+    void getTickets_shouldThrowWhenOrganizerCallsListEndpoint() {
+        loginAsOrganizer(1L);
+
+        assertThrows(ValidationException.class, () -> ticketService.getTickets(10L, null));
+    }
+
+    @Test
+    void getTickets_shouldThrowWhenUnauthenticatedAndNoFilters() {
+        SecurityContextHolder.clearContext();
+
+        assertThrows(ValidationException.class, () -> ticketService.getTickets(null, null));
+    }
+
+    @Test
+    void getTickets_shouldUsePrincipalUserIdForUserRole() {
+        loginAsUser(10L);
+        User u10 = user(10L);
+        User u20 = user(20L);
+        Event event = event(100L, 10);
+        Ticket t10 = Ticket.builder().id(1L).user(u10).event(event).barcode("A").build();
+        Ticket t20 = Ticket.builder().id(2L).user(u20).event(event).barcode("B").build();
+        TicketResponseDto d1 = new TicketResponseDto();
+        d1.setId(1L);
+
+        when(ticketRepository.findAll()).thenReturn(List.of(t10, t20));
+        when(ticketMapper.toResponseDto(t10)).thenReturn(d1);
+
+        List<TicketResponseDto> result = ticketService.getTickets(999L, null);
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.getFirst().getId());
+    }
+
+    @Test
+    void countByEventId_shouldDelegateToRepository() {
+        when(ticketRepository.countByEventId(42L)).thenReturn(7L);
+
+        assertEquals(7L, ticketService.countByEventId(42L));
+    }
+
+    @Test
+    void getTickets_shouldFilterByBarcodeOnlyForAdmin() {
+        loginAsAdmin();
+        User u10 = user(10L);
+        Event event = event(100L, 10);
+        Ticket t1 = Ticket.builder().id(1L).user(u10).event(event).barcode("MATCH").build();
+        Ticket t2 = Ticket.builder().id(2L).user(u10).event(event).barcode("OTHER").build();
+        TicketResponseDto d1 = new TicketResponseDto();
+        d1.setId(1L);
+
+        when(ticketRepository.findAll()).thenReturn(List.of(t1, t2));
+        when(ticketMapper.toResponseDto(t1)).thenReturn(d1);
+
+        List<TicketResponseDto> result = ticketService.getTickets(null, "MATCH");
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenAdminUserIdMissing() {
+        loginAsAdmin();
+        BulkTicketRequestDto request = new BulkTicketRequestDto(null, List.of(bulkItem(100L, "A")));
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenAdminUserNotFound() {
+        loginAsAdmin();
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of(bulkItem(100L, "A")));
+        when(userRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenOrganizerTriesBulk() {
+        loginAsOrganizer(1L);
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of(bulkItem(100L, "A")));
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenNotAuthenticated() {
+        SecurityContextHolder.clearContext();
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of(bulkItem(100L, "A")));
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenAuthenticationPrincipalIsNull() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(null, null, Collections.emptyList()));
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of(bulkItem(100L, "A")));
+
+        assertThrows(ValidationException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenUserPrincipalHasNoUserRow() {
+        loginAsUser(10L);
+        BulkTicketRequestDto request = new BulkTicketRequestDto(null, List.of(bulkItem(100L, "A")));
+        when(userRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void buyTicketsBulkTransactional_shouldThrowWhenEventMissingFromRepository() {
+        loginAsAdmin();
+        User user = user(10L);
+        BulkTicketRequestDto request = new BulkTicketRequestDto(10L, List.of(bulkItem(100L, "A")));
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(eventRepository.findAllById(ArgumentMatchers.anyCollection())).thenReturn(List.of());
+
+        assertThrows(ResourceNotFoundException.class, () -> ticketService.buyTicketsBulkTransactional(request));
+    }
+
+    @Test
+    void delete_shouldThrowValidationWhenTicketHasNoEvent() {
+        loginAsUser(10L);
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(null).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        assertThrows(ValidationException.class, () -> ticketService.delete(5L));
+    }
+
+    @Test
+    void delete_shouldThrowConflictWhenEventCompletedForUser() {
+        loginAsUser(10L);
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.COMPLETED);
+        ev.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        assertThrows(ConflictException.class, () -> ticketService.delete(5L));
+    }
+
+    @Test
+    void delete_shouldThrowConflictWhenEventOngoingForUser() {
+        loginAsUser(10L);
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.ONGOING);
+        ev.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        assertThrows(ConflictException.class, () -> ticketService.delete(5L));
+    }
+
+    @Test
+    void delete_shouldSucceedWhenEventStartDateNull() {
+        loginAsUser(10L);
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.PLANNED);
+        ev.setStartDate(null);
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        ticketService.delete(5L);
+
+        verify(ticketRepository).deleteById(5L);
+    }
+
+    @Test
+    void delete_shouldValidateWhenAuthenticationPrincipalIsNull() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(null, null, Collections.emptyList()));
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.PLANNED);
+        ev.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        ticketService.delete(5L);
+
+        verify(ticketRepository).deleteById(5L);
+    }
+
+    @Test
+    void delete_shouldValidateWhenPrincipalIsOrganizer() {
+        loginAsOrganizer(1L);
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.PLANNED);
+        ev.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        ticketService.delete(5L);
+
+        verify(ticketRepository).deleteById(5L);
+    }
+
+    @Test
+    void delete_shouldTreatNonUserPrincipalAsNonAdmin() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", null, List.of()));
+        Event ev = event(100L, 10);
+        ev.setStatus(EventStatus.PLANNED);
+        ev.setStartDate(LocalDateTime.now().plusDays(1));
+        Ticket ticket = Ticket.builder().id(5L).user(user(10L)).event(ev).build();
+        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
+
+        ticketService.delete(5L);
+
+        verify(ticketRepository).deleteById(5L);
+    }
+
+    @Test
+    void getTickets_shouldWorkWhenAuthenticationHasNonUserPrincipal() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("svc", null, List.of()));
+        User u10 = user(10L);
+        Event event = event(100L, 10);
+        Ticket t1 = Ticket.builder().id(1L).user(u10).event(event).barcode("MATCH").build();
+        TicketResponseDto d1 = new TicketResponseDto();
+        d1.setId(1L);
+
+        when(ticketRepository.findAll()).thenReturn(List.of(t1));
+        when(ticketMapper.toResponseDto(t1)).thenReturn(d1);
+
+        List<TicketResponseDto> result = ticketService.getTickets(10L, "MATCH");
+
+        assertEquals(1, result.size());
     }
 
     @Test
@@ -509,6 +741,20 @@ class TicketServiceImplTest {
                 .email("admin@example.com")
                 .fullName("Admin")
                 .role(AppRole.ADMIN)
+                .build();
+        UserPrincipal principal = new UserPrincipal(entity);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+    }
+
+    private void loginAsOrganizer(long organizerProfileId) {
+        Organizer profile = Organizer.builder().id(organizerProfileId).name("Org").build();
+        User entity = User.builder()
+                .id(2L)
+                .email("org@example.com")
+                .role(AppRole.ORGANIZER)
+                .organizerProfile(profile)
                 .build();
         UserPrincipal principal = new UserPrincipal(entity);
         SecurityContextHolder.getContext().setAuthentication(

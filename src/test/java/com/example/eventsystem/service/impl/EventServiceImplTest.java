@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -263,6 +265,117 @@ class EventServiceImplTest {
     }
 
     @Test
+    void updateEvent_shouldThrowWhenEventMissing() {
+        loginAsOrganizer(5L);
+        when(eventRepository.findById(8L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> eventService.updateEvent(8L, requestDto()));
+    }
+
+    @Test
+    void createEvent_shouldThrowWhenNotAuthenticated() {
+        SecurityContextHolder.clearContext();
+        EventRequestDto request = requestDto();
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(Organizer.builder().id(5L).name("O").build()));
+
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_shouldThrowWhenPrincipalIsNotUserPrincipal() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", "creds",
+                        List.of(new SimpleGrantedAuthority("ROLE_ORGANIZER"))));
+        EventRequestDto request = requestDto();
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(Organizer.builder().id(5L).name("O").build()));
+
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_shouldThrowWhenOrganizerUserHasNoProfileId() {
+        User user = User.builder().id(2L).email("o@e.com").role(AppRole.ORGANIZER).build();
+        UserPrincipal principal = new UserPrincipal(user);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+        EventRequestDto request = requestDto();
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(Organizer.builder().id(5L).name("O").build()));
+
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_shouldThrowWhenUserRole() {
+        User user = User.builder().id(2L).email("u@e.com").role(AppRole.USER).build();
+        UserPrincipal principal = new UserPrincipal(user);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+        EventRequestDto request = requestDto();
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(Organizer.builder().id(5L).name("O").build()));
+
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_shouldThrowWhenOrganizerMismatch() {
+        loginAsOrganizer(7L);
+        EventRequestDto request = requestDto();
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(Organizer.builder().id(5L).name("O").build()));
+
+        assertThrows(ValidationException.class, () -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_shouldSucceedForAdmin() {
+        User admin = User.builder().id(99L).email("a@e.com").role(AppRole.ADMIN).build();
+        UserPrincipal principal = new UserPrincipal(admin);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+        EventRequestDto request = requestDto();
+        Organizer organizer = Organizer.builder().id(5L).name("Org").build();
+        Event mapped = Event.builder().name("Meetup").build();
+        Event saved = Event.builder().id(10L).name("Meetup").status(EventStatus.PLANNED).build();
+        EventResponseDto response = EventResponseDto.builder().id(10L).name("Meetup").build();
+        Category category = Category.builder().id(7L).name("Tech").build();
+
+        when(organizerRepository.findById(5L)).thenReturn(Optional.of(organizer));
+        when(eventMapper.toEntity(request)).thenReturn(mapped);
+        when(categoryRepository.findAllById(List.of(7L))).thenReturn(List.of(category));
+        when(eventRepository.save(mapped)).thenReturn(saved);
+        when(eventMapper.toResponseDto(saved)).thenReturn(response);
+
+        EventResponseDto actual = eventService.createEvent(request);
+
+        assertEquals(10L, actual.getId());
+        verify(cacheIndex).clear();
+    }
+
+    @Test
+    void updateStatus_shouldThrowWhenOrganizerIdNull() {
+        loginAsAdmin();
+        Organizer org = Organizer.builder().name("X").build();
+        Event event = Event.builder().id(3L).status(EventStatus.PLANNED).organizer(org).build();
+        when(eventRepository.findById(3L)).thenReturn(Optional.of(event));
+
+        assertThrows(ValidationException.class, () -> eventService.updateStatus(3L, EventStatus.COMPLETED));
+    }
+
+    @Test
+    void updateEvent_shouldThrowWhenChangingToOrganizerNotManagedByUser() {
+        loginAsOrganizer(5L);
+        EventRequestDto request = requestDto();
+        request.setOrganizerId(6L);
+        Organizer organizer5 = Organizer.builder().id(5L).name("A").build();
+        Organizer organizer6 = Organizer.builder().id(6L).name("B").build();
+        Event event = Event.builder().id(8L).name("Old").status(EventStatus.PLANNED).organizer(organizer5).build();
+
+        when(eventRepository.findById(8L)).thenReturn(Optional.of(event));
+        when(organizerRepository.findById(6L)).thenReturn(Optional.of(organizer6));
+
+        assertThrows(ValidationException.class, () -> eventService.updateEvent(8L, request));
+    }
+
+    @Test
     void deleteEvent_shouldThrowWhenCompleted() {
         Organizer organizer = Organizer.builder().id(5L).name("Org").build();
         loginAsOrganizer(5L);
@@ -389,6 +502,17 @@ class EventServiceImplTest {
                 .email("org@example.com")
                 .role(AppRole.ORGANIZER)
                 .organizerProfile(profile)
+                .build();
+        UserPrincipal principal = new UserPrincipal(user);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+    }
+
+    private void loginAsAdmin() {
+        User user = User.builder()
+                .id(100L)
+                .email("admin@example.com")
+                .role(AppRole.ADMIN)
                 .build();
         UserPrincipal principal = new UserPrincipal(user);
         SecurityContextHolder.getContext().setAuthentication(
