@@ -26,6 +26,12 @@ jobs:
           chmod +x mvnw
           ./mvnw -B verify
 
+      - name: Build backend Docker image
+        run: docker build -t event-system-backend .
+
+      - name: Build frontend Docker image
+        run: docker build -t event-system-frontend ./frontend
+
   deploy:
     needs: build-test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'

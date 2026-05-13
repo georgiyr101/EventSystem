@@ -1,5 +1,5 @@
 target/
-frontend/node_modules/
+frontend/
 .git
 .idea
 *.iml
@@ -7,3 +7,5 @@ frontend/node_modules/
 .github
 **/*.md
 .vscode/
+*.log
+**/Thumbs.db

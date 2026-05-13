@@ -101,10 +101,6 @@ public class SecurityConfig {
         return source;
     }
 
-    /**
-     * Allows unauthenticated GET for the SPA shell, static assets, and deep links. API and
-     * infrastructure paths stay behind the rules above.
-     */
     private static boolean permitsBrowserShellGet(HttpServletRequest request) {
         if (!HttpMethod.GET.matches(request.getMethod())) {
             return false;
