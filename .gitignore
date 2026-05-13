@@ -38,3 +38,6 @@ logs/
 *.log
 
 *.gz
+
+# Frontend build copied into classpath for local/CI Maven (VideoGamesShop-style)
+src/main/resources/static/

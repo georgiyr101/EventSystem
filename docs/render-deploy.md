@@ -38,15 +38,20 @@ Render injects **`PORT`**; the app uses `server.port=${PORT:8080}` automatically
 
 ## 4. Deploy Hook (GitHub Actions)
 
+Workflow: [`.github/workflows/cicd.yml`](.github/workflows/cicd.yml).
+
 1. In Render: service **Settings → Deploy Hook → Create deploy hook**.
 2. Copy the hook URL.
 3. In GitHub: **Repository → Settings → Secrets and variables → Actions**, add:
-   - `RENDER_DEPLOY_HOOK_URL` — the hook URL (used to trigger a deploy after CI passes).
-   - `RENDER_HEALTHCHECK_URL` — public URL of the health endpoint, e.g. `https://<your-service>.onrender.com/actuator/health`.
+   - `RENDER_DEPLOY_HOOK_URL` — the hook URL (used after a successful `main` build to trigger Render).
+   - `RENDER_APP_URL` — public base URL of the service, e.g. `https://<your-service>.onrender.com` (healthcheck calls `${RENDER_APP_URL}/actuator/health`).
+4. Optional: `SONAR_TOKEN` for SonarCloud (project key `georgiyr101_EventSystem`).
+
+On Render you can set **`DATABASE_URL`** (postgres URL); [`docker-entrypoint.sh`](docker-entrypoint.sh) maps it to `SPRING_DATASOURCE_*` like the VideoGamesShop pattern.
 
 ## 5. Local Docker Compose
 
-Copy `.env.example` to `.env`, adjust passwords and secrets, then:
+Copy [`.env.example`](.env.example) to `.env` and set **`DB_USERNAME`**, **`DB_PASSWORD`**, and **`APP_JWT_SECRET`** (required). Adjust `DB_NAME` / ports if needed, then:
 
 ```bash
 docker compose up --build
@@ -54,4 +59,4 @@ docker compose up --build
 
 API: `http://localhost:8080` — health: `http://localhost:8080/actuator/health`.
 
-The same service also serves the React SPA from `/` (build is bundled into the JAR via Maven); the UI calls `/api/v1/...` on the same host.
+The Docker image builds the React app in a first stage and embeds `dist` under `classpath:/static`, so the same container serves the SPA and `/api/v1/...`.
